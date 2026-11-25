@@ -218,6 +218,13 @@ body.plan-fallback-open{overflow:hidden}
 #fullscreen-record-slot:empty,#fullscreen-record-feedback:empty,
 #diagnostic-viewer:not(.plan-expanded) #fullscreen-record-feedback{display:none}
 #fullscreen-record-feedback{color:#185034;font-weight:650}
+[data-lit="filament-dim"] .lamp-lens,[data-lit="filament-dim"] .lamp-probe-led{
+ background:#d98c35;fill:#d98c35;filter:drop-shadow(0 0 2px #f4a445)
+}
+[data-lit="filament-bright"] .lamp-lens,[data-lit="filament-bright"] .lamp-probe-led{
+ background:#fff3b3;fill:#fff3b3;filter:drop-shadow(0 0 5px #ffb83d)
+}
+.tool-chooser button{min-width:min(100%,10rem)}
 </style></head>
 <body>
 <header class="site-header"><div><p>DEP 5367 · Module 8</p><h1>Simulateur de diagnostic électrique</h1><nav class="workspace-tabs" aria-label="Activités">
@@ -567,6 +574,7 @@ body.plan-fallback-open{overflow:hidden}
 <div id="instrument-picker" class="tool-chooser" role="group" aria-label="Choix de l’instrument">
 <button id="choose-voltmeter" type="button" aria-pressed="true" aria-controls="voltmeter-panel">Multimètre</button>
 <button id="choose-lamp" type="button" aria-pressed="false" aria-controls="lamp-panel">Lampe témoin à DEL</button>
+<button id="choose-incandescent" type="button" aria-pressed="false" aria-controls="lamp-panel">Lampe témoin à incandescence</button>
 </div>
 <div id="meter-deck" class="meter-deck" aria-label="Instrument de diagnostic">
 <div class="instrument">
@@ -588,7 +596,7 @@ body.plan-fallback-open{overflow:hidden}
 <button class="dock lamp-body lamp-point" id="probe-lamp-point" aria-pressed="false"><span class="lamp-lens jack" aria-hidden="true"></span>Pointe de la lampe</button>
 <div class="lamp-docks">
 <button class="dock red-probe" id="probe-lamp-plus" aria-pressed="true"><span class="jack" aria-hidden="true"></span>Pince +</button>
-<button class="dock black-probe" id="probe-lamp-minus" aria-pressed="false"><span class="jack" aria-hidden="true"></span>Pince −</button>
+<button class="dock black-probe" id="probe-lamp-minus" aria-pressed="false"><span class="jack" aria-hidden="true"></span><span id="lamp-minus-name">Pince −</span></button>
 </div>
 <p id="led-status" class="lamp-status" role="status"></p>
 </div>
@@ -612,9 +620,9 @@ body.plan-fallback-open{overflow:hidden}
 <div><label for="bench-battery-minus">Pince noire du testeur</label><select id="bench-battery-minus"></select></div>
 </div>
 <div id="lamp-options" class="lamp-options" hidden>
-<p>Branche les deux pinces sur la batterie, puis glisse la pointe sur le plan.</p>
+<p id="lamp-instructions">Branche les deux pinces sur la batterie, puis glisse la pointe sur le plan.</p>
 <div><label for="lamp-plus">Pince rouge (+)</label><select id="lamp-plus"></select></div>
-<div><label for="lamp-minus">Pince noire (−)</label><select id="lamp-minus"></select></div>
+<div><label id="lamp-minus-label" for="lamp-minus">Pince noire (−)</label><select id="lamp-minus"></select></div>
 <div><label for="lamp-point">Pointe de la lampe</label><select id="lamp-point"></select></div>
 </div>
 <div class="group actions"><button id="record" type="button" class="primary" disabled>Consigner la mesure</button><button id="clear">Tout débrancher</button></div>
@@ -3706,13 +3714,15 @@ const phaseCoilResistance=.4;
 
 function activeProbes() {
  if(isBatteryBench()) return ['red','black','lamp-plus','lamp-minus'];
- return instrument === 'lamp' ? lampProbes : meterProbes;
+ if(instrument==='incandescent') return ['lamp-minus','lamp-point'];
+ return instrument==='lamp'?lampProbes:meterProbes;
 }
 function isClamp(probe) {
  return probe === 'lamp-plus' || probe === 'lamp-minus';
 }
 function canAttach(probe,id) {
- return !isClamp(probe) || id === 'bp' || id === 'bn';
+ if(probe==='lamp-minus'&&instrument==='incandescent'&&!benchOpen) return id==='bn'||id==='ground';
+ return !isClamp(probe)||id==='bp'||id==='bn';
 }
 function lampPowered() {
  return el('lamp-plus').value === 'bp' && el('lamp-minus').value === 'bn';
@@ -3720,6 +3730,7 @@ function lampPowered() {
 function nextProbe(probe) {
  if (probe === 'red') return 'black';
  if (probe === 'black') return 'red';
+ if(!benchOpen&&instrument==='incandescent') return probe==='lamp-minus'?'lamp-point':'lamp-minus';
  return probe === 'lamp-plus' ? 'lamp-minus' : (isBatteryBench()?'red':'lamp-point');
 }
 
@@ -5093,6 +5104,12 @@ function place(id) {
  selectedProbe = nextProbe(selectedProbe);
  render();
 }
+function addProbeOption(probe,id,name) {
+ // The shared clamp also needs the chassis option when the incandescent lamp is selected.
+ if(canAttach(probe,id)||(!benchOpen&&probe==='lamp-minus'&&['bp','ground'].includes(id))) {
+  el(probe).add(new Option(name,id));
+ }
+}
 function populateProbePoints() {
  el('points').replaceChildren();
  for (const probe of probes) {
@@ -5101,10 +5118,10 @@ function populateProbePoints() {
   el(probe).value='';
  }
  if(!benchOpen&&plan.views) for(const [id,name] of ([plans.outlander,plans.ktm500,plans.f7,plans.yz450].includes(plan) ? points : plan.points)) {
-  for(const probe of probes) if(canAttach(probe,id)) el(probe).add(new Option(name,id));
+  for(const probe of probes) addProbeOption(probe,id,name);
  }
  for (const [id,name,x,y,labelX,labelY] of points) {
-  if(benchOpen||!plan.views) for (const probe of probes) if (canAttach(probe,id)) el(probe).add(new Option(name,id));
+  if(benchOpen||!plan.views) for(const probe of probes) addProbeOption(probe,id,name);
   const hit = svg('circle',{cx:x,cy:y,r:benchOpen?surface().width/57:plan===plans.yamaha?2.8:plan===plans.school?13:5,class:'target'});
   const pt = svg('circle',{cx:x,cy:y,r:benchOpen?surface().width/100:plan===plans.yamaha?2.3:plan===plans.school?7:4,class:'point',tabindex:0,role:'button','aria-label':name});
   const title=svg('title',{}); title.textContent=name; pt.append(title);
@@ -5419,6 +5436,23 @@ function meterReading(volts,acVoltage,state,red,black) {
  const openDiode=plan===plans.school && scenario==='charge-diode' && !repaired;
  return {text:diode[0]===red && !openDiode?'0,62 V':'OL'};
 }
+function readIncandescent(state, volts, acVoltage, tip, ground) {
+ if(!ground) return {lit:'off',text:'Branche la pince à la masse ou au négatif de la batterie.'};
+ if(!tip) return {lit:'off',text:'Pose la pointe sur le point à vérifier.'};
+ if(!Number.isFinite(volts[tip])||!Number.isFinite(volts[ground])) {
+  return {lit:'off',text:'Choisis deux points présents sur ce schéma.'};
+ }
+ if(Math.abs(volts[tip]-volts[ground])>16||acVoltage(tip,ground)>2) {
+  return {lit:'off',text:'Lampe du banc limitée au 12 V CC. Utilise le multimètre simulé.'};
+ }
+ // Approximate a 3 W filament at its nominal 12 V and solve with that load in parallel.
+ const filament={a:tip,b:ground,resistance:48};
+ const loaded=tip===ground?volts:voltages([...state.edges,filament],state.dcSources);
+ const voltage=Math.abs(loaded[tip]-loaded[ground]);
+ if(voltage<2.4) return {lit:'off',text:'Lampe éteinte',valid:true};
+ if(voltage<9) return {lit:'filament-dim',text:'Lampe faiblement allumée',valid:true};
+ return {lit:'filament-bright',text:'Lampe bien allumée',valid:true};
+}
 function render() {
  el('series-grips-legend').hidden=benchOpen||plan!==plans['series-grips'];
  if(benchOpen) {
@@ -5439,7 +5473,8 @@ function render() {
  const acVoltage=(a,b)=>Math.hypot(acVolts[a]-acVolts[b],acSine?acSine[a]-acSine[b]:0);
  const red=el('red').value, black=el('black').value;
  for(const p of probes) el('probe-'+p).setAttribute('aria-pressed',String(p===selectedProbe));
- const lampMode = instrument === 'lamp';
+ const incandescent=instrument==='incandescent';
+ const lampMode=instrument!=='voltmeter';
  const referenceOnly=Boolean(surface().referenceOnly);
  const powered = !referenceOnly&&lampPowered()&&(plan!==plans.ski||el('ski-electric').checked);
  const tip = el('lamp-point').value;
@@ -5460,11 +5495,22 @@ function render() {
  const lampStatus = powered ? (tip ? (skiHighVoltage?'Bus 60 V · utilise le multimètre simulé':liveAC?'Signal alternatif · utilise V CA':lampResults[polarity]) : 'Alimentée. Pose la pointe sur le plan.') :
   (clipsOn ? 'Vérifie le branchement des pinces + et −.' : 'Branche les deux pinces sur la batterie.');
  el('choose-voltmeter').setAttribute('aria-pressed',String(!lampMode));
- el('choose-lamp').setAttribute('aria-pressed',String(lampMode));
+ const filamentReading=incandescent ? readIncandescent(state,volts,acVoltage,tip,el('lamp-minus').value) : null;
+ el('choose-lamp').setAttribute('aria-pressed',String(instrument==='lamp'));
+ el('choose-incandescent').setAttribute('aria-pressed',String(incandescent));
+ el('probe-lamp-plus').hidden=el('lamp-plus').parentElement.hidden=incandescent;
+ for(const option of el('lamp-minus').options) {
+  option.hidden=option.disabled=Boolean(option.value&&!canAttach('lamp-minus',option.value));
+ }
+ el('lamp-minus-name').textContent=incandescent?'Pince de masse':'Pince −';
+ el('lamp-minus-label').textContent=incandescent?'Pince de masse':'Pince noire (−)';
+ el('lamp-instructions').textContent=incandescent
+  ? 'Lampe 12 V CC. Branche la pince à la masse, puis pose la pointe sur le point à vérifier.'
+  : 'Branche les deux pinces sur la batterie, puis glisse la pointe sur le plan.';
  for(const id of ['lamp-panel','lamp-options']) el(id).hidden=!lampMode;
  for(const id of ['voltmeter-panel','voltmeter-options']) el(id).hidden=lampMode;
- for(const id of ['lamp-panel','tip-lamp-point']) el(id).setAttribute('data-lit',polarity);
- el('led-status').textContent=referenceOnly?'Retourne au schéma du circuit pour prendre des mesures.':lampStatus;
+ for(const id of ['lamp-panel','tip-lamp-point']) el(id).setAttribute('data-lit',referenceOnly?'off':(filamentReading?.lit??polarity));
+ el('led-status').textContent=referenceOnly?'Retourne au schéma du circuit pour prendre des mesures.':(filamentReading?.text??lampStatus);
  const result=meterReading(volts,acVoltage,state,red,black);
  const mode=el('meter-mode').value;
  const motorcycleChargingAC=mode==='ac' && !isTractorPlan() && system==='charging';
@@ -5487,7 +5533,7 @@ function render() {
  el('reading').textContent=result.text;
  el('meter-feedback').textContent=result.hint||'';
  el('meter-feedback').hidden=!result.hint||(!red&&!black&&!isolation&&!measuringAmps);
- el('record').disabled=referenceOnly||(lampMode ? !(powered && tip) : Boolean(result.hint));
+ el('record').disabled=referenceOnly||(incandescent?!filamentReading.valid:lampMode?!(powered&&tip):Boolean(result.hint));
  const crankVoltage=volts.motor-volts.mg;
  let response='Le solénoïde et le démarreur sont immobiles.';
  if(relay) {
@@ -5956,12 +6002,14 @@ el('spark-test').addEventListener('click',()=>{
   (state.sparkAllowed?'Étincelle détectée.':'Aucune étincelle pendant que le moteur est entraîné.') :
   'Entraîne le moteur avec le démarreur pour faire l’essai.';
 });
-for(const tool of ['voltmeter','lamp']) el('choose-'+tool).addEventListener('click',()=>{
- if(isGeneratorPlan()&&tool==='lamp') return;
+for(const tool of ['voltmeter','lamp','incandescent']) el('choose-'+tool).addEventListener('click',()=>{
+ if(el('choose-'+tool).hidden) return;
  instrument=tool;
  el('meter-break').checked=false;
  el('meter-isolate').checked=false;
- selectedProbe=instrument==='voltmeter' ? 'red' : (lampPowered() ? 'lamp-point' : 'lamp-plus');
+ const clamp=el('lamp-minus');
+ if(clamp.value&&!canAttach('lamp-minus',clamp.value)) clamp.value='';
+ selectedProbe=tool==='voltmeter'?'red':tool==='incandescent'?(clamp.value?'lamp-point':'lamp-minus'):(lampPowered()?'lamp-point':'lamp-plus');
  render();
 });
 for(const [id,phase] of [['shot-rope','early'],['shot-idle','idled'],['shot-stop','stopped'],['shot-wait','waited']]) {
@@ -6203,7 +6251,7 @@ function selectPlan() {
  el('crf-controls').hidden=plan!==plans.crf;
  el('gen-controls').hidden=plan!==plans.g3500;
  el('ef-controls').hidden=plan!==plans.ef2000;
- el('choose-lamp').hidden=isGeneratorPlan()||plan===plans.ski850||plan===plans.f7;
+ el('choose-incandescent').hidden=el('choose-lamp').hidden=isGeneratorPlan()||plan===plans.ski850||plan===plans.f7;
  if(isGeneratorPlan()||plan===plans.ski850||plan===plans.f7) instrument='voltmeter';
  el('meter-mode').value=isGeneratorPlan()?'ac':'dc';
  fitWidth=true;
@@ -6271,9 +6319,11 @@ el('record').addEventListener('click',()=>{
   el(plan.id+'-light').selectedOptions[0].textContent);
  const probeLabel=probe=>pointById[el(probe).value][1];
  if(el('record').disabled) return;
- const measure=instrument === 'lamp' ?
-  el('led-status').textContent+' · Pointe : '+probeLabel('lamp-point') :
-  el('meter-mode').selectedOptions[0]?.textContent+' · '+el('reading').textContent+' · Rouge : '+probeLabel('red')+' · Noire : '+probeLabel('black');
+ const measure=instrument==='incandescent'
+  ? 'Lampe à incandescence · '+el('led-status').textContent+' · Pointe : '+probeLabel('lamp-point')+' · Masse : '+probeLabel('lamp-minus')
+  : instrument==='lamp'
+   ? el('led-status').textContent+' · Pointe : '+probeLabel('lamp-point')
+   : el('meter-mode').selectedOptions[0]?.textContent+' · '+el('reading').textContent+' · Rouge : '+probeLabel('red')+' · Noire : '+probeLabel('black');
  item.textContent=measure+' · '+controls.join(' / ')+(repaired?' · Après réparation':'');
  const log=el('log');
  log.append(item);
@@ -7277,7 +7327,7 @@ function selectWorkspace(open) {
  }
  el('diagnostic-sidebar').hidden=open;
  el('bench-sidebar').hidden=!open;
- el('choose-lamp').hidden=open||isGeneratorPlan()||plan===plans.ski850||plan===plans.f7;
+ el('choose-incandescent').hidden=el('choose-lamp').hidden=open||isGeneratorPlan()||plan===plans.ski850||plan===plans.f7;
  el('start-view').hidden=open||plan===plans.gl1800||plan===plans['series-grips'];
  el('multi-plan-nav').hidden=open||(!plan.views&&!technicalResources[plan.id]);
  if(open) el('yz-diagram-legend').hidden=true;
