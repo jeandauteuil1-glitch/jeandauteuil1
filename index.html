@@ -202,6 +202,7 @@ body.plan-fallback-open{overflow:hidden}
  .plan-expanded .viewer-tools>.bar:first-child{display:none}
  .plan-expanded .meter-deck{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
+.client-complaint{margin-top:.8rem}
 </style></head>
 <body>
 <header class="site-header"><div><p>DEP 5367 · Module 8</p><h1>Simulateur de diagnostic électrique</h1><nav class="workspace-tabs" aria-label="Activités">
@@ -220,7 +221,7 @@ body.plan-fallback-open{overflow:hidden}
 <main id="diagnostic-main">
 <aside><div id="diagnostic-sidebar">
 
-<section id="standard-complaint" class="card controls" aria-labelledby="plainte"><h2 id="plainte">Plainte client</h2>
+<section id="standard-complaint" class="card controls" aria-labelledby="plainte">
 <label for="plan">Plan électrique</label>
 <select id="plan">
 <option value="school">Tracteur Craftsman · 917.277220</option>
@@ -249,8 +250,12 @@ body.plan-fallback-open{overflow:hidden}
 <option value="starting">Démarrage</option><option value="charging">Charge</option>
 <option value="lighting">Éclairage</option><option value="ignition">Allumage</option>
 </select>
+<div class="client-complaint">
+<h2 id="plainte">Plainte client</h2>
+<p id="complaint"></p>
+</div>
 <label for="case">Scénario</label><select id="case"><option value="pedal">A</option><option value="fuse">B</option><option value="pto">C</option><option value="power">D</option><option value="resistance">E</option><option value="normal">Fonctionnement normal</option></select>
-<p id="complaint"></p><p class="compact">Pose les pointes du multimètre sur le plan, consigne tes mesures et propose une cause.</p></section>
+<p class="compact">Pose les pointes du multimètre sur le plan, consigne tes mesures et propose une cause.</p></section>
 <section id="diagnostic-commands" class="card controls" aria-labelledby="commandes"><h2 id="commandes">Commandes</h2>
 <label for="key" id="key-label">Clé</label><select id="key"><option value="off">OFF · Arrêt</option><option id="key-run" value="run">RUN · Marche</option><option id="school-lights" value="school-lights" hidden disabled>RUN/LIGHT · Marche avec phares</option><option id="kubota-preheat" value="preheat" hidden disabled>PREHEAT · Préchauffage</option><option id="x520-lights" value="lights" hidden disabled>LIGHTS · Marche avec phares</option><option id="mtd-run2" value="run2" hidden disabled>RUN 2 · Marche</option><option id="key-start" value="start">START · Démarrage</option></select>
 <div id="yz-controls" hidden>
