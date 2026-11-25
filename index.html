@@ -83,10 +83,10 @@ main{max-width:1460px;margin:auto;padding:1rem;display:grid;grid-template-column
 #multi-plan-nav[data-resource-only=true] button,
 #multi-plan-nav[data-resource-only=true] #multi-page-links,
 #multi-plan-nav[data-resource-only=true] #multi-lead-note{display:none}
-#manual-shortcut{display:inline-flex;flex-direction:column;align-items:center;gap:.1rem;padding:.38rem .75rem;border:1px solid #a8bdc3;border-radius:8px;background:#fff;color:var(--ink);text-decoration:none;text-align:center}
-#manual-shortcut small{font-size:.75rem;color:var(--dim)}
-#manual-shortcut:hover{border-color:var(--accent);background:#f0f7f5}
-#manual-shortcut:focus-visible{outline:3px solid #158491;outline-offset:2px}
+.technical-resource-link{display:inline-flex;flex-direction:column;align-items:center;gap:.1rem;padding:.38rem .75rem;border:1px solid #a8bdc3;border-radius:8px;background:#fff;color:var(--ink);text-decoration:none;text-align:center}
+.technical-resource-link small{font-size:.75rem;color:var(--dim)}
+.technical-resource-link:hover{border-color:var(--accent);background:#f0f7f5}
+.technical-resource-link:focus-visible{outline:3px solid #158491;outline-offset:2px}
 .diagram-legend{padding:.6rem 1rem;border-top:1px solid var(--line);background:#f6faf9}
 .diagram-legend summary{cursor:pointer;font-size:.9rem;font-weight:750}
 .diagram-legend ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(13rem,100%),1fr));gap:.26rem .8rem;margin:.5rem 0 0;padding:0}
@@ -547,7 +547,7 @@ body.identifying #probe-layer{display:none!important}
 <div class="group"><button id="multi-circuit" type="button" aria-pressed="true">Schéma du circuit</button><button id="multi-general" type="button" aria-pressed="false">Plan général</button>
 <button id="multi-location" type="button" aria-pressed="false" hidden>Repérage des composants</button>
 <button id="multi-wiring" type="button" aria-pressed="false" hidden>Plan complet BRP 2016</button>
-<a id="manual-shortcut" target="_blank" rel="noopener noreferrer" hidden><span>Ressource technique</span><small id="manual-equipment"></small></a></div>
+<a id="manual-shortcut" class="technical-resource-link" target="_blank" rel="noopener noreferrer" hidden><span>Ressource technique</span><small id="manual-equipment"></small></a></div>
 <div id="multi-page-links" class="group" aria-label="Pages du schéma"></div>
 <p id="multi-lead-note" class="compact" role="status"></p>
 </div>
@@ -647,6 +647,7 @@ body.identifying #probe-layer{display:none!important}
         <button id="id-shrink" type="button" aria-label="Réduire le zoom">−</button>
         <button id="id-fit" type="button">Plan complet</button>
         <button id="id-enlarge" type="button" aria-label="Agrandir le zoom">+</button>
+        <a id="id-manual-shortcut" class="technical-resource-link" target="_blank" rel="noopener noreferrer" hidden><span>Ressource technique</span><small id="id-manual-equipment"></small></a>
       </div>
     </div>
     <p class="id-plan-instruction compact">Repère à placer · <strong id="id-target"></strong></p>
@@ -3183,7 +3184,7 @@ const technicalResources = {
  ktm500:{label:'KTM 500 EXC · 2013',url:'https://drive.google.com/file/d/16V2oUkJdaqRnVmIZZmlcJtdMXagxgVVJ/view?usp=sharing'},
  g3500:{label:'Lifan G3500 · Manuel de l’opérateur',url:'https://lifancanada.ca/media/1531/g3500-3500w.pdf'},
  ski850:{label:'Backcountry 850 E-TEC · 2023',url:'https://drive.google.com/file/d/1WPU5QgdgdyF0qItsPJJZJKzG61GZ_elq/view?usp=sharing'},
- yz450:{label:'Yamaha YZ450F · 2023',url:'https://drive.google.com/file/d/1VVx0O6VH-l5imhkxswc3zZkhZokyfmQ1/view?usp=sharing'},
+ yz450:{label:'Manuel Yamaha YZ450F · 2023',url:'https://drive.google.com/file/d/1VVx0O6VH-l5imhkxswc3zZkhZokyfmQ1/view?usp=sharing'},
  outlander:{label:'Can-Am Outlander · 2023',url:'https://drive.google.com/file/d/1qLNRxiZPLhA6l5kyubMGZ9sMbFQDWPwj/view?usp=sharing'},
  f7:{label:'Arctic Cat Firecat F7 · 2003',url:'https://drive.google.com/file/d/1Wp1KuynzGhwmp10wVXdAyeuU108pzDhv/view?usp=sharing'}
 };
@@ -6032,6 +6033,15 @@ function selectSystem() {
  resetScenario();
 }
 el('system').addEventListener('change',selectSystem);
+function setTechnicalResource(linkId,labelId,resource) {
+ const link=el(linkId);
+ link.hidden=!resource;
+ if(resource) {
+  link.href=resource.url;
+  el(labelId).textContent=resource.label;
+ }
+}
+
 function selectPlan() {
  plan=plans[el('plan').value];
  if(plan!==plans.yz450) setYamahaLegend('yz-diagram-legend',null);
@@ -6061,12 +6071,7 @@ function selectPlan() {
  const planNav=el('multi-plan-nav');
  planNav.hidden=!plan.views&&!technicalResource;
  planNav.setAttribute('data-resource-only',String(!plan.views));
- const technicalLink=el('manual-shortcut');
- technicalLink.hidden=!technicalResource;
- if(technicalResource) {
-  technicalLink.href=technicalResource.url;
-  el('manual-equipment').textContent=technicalResource.label;
- }
+ setTechnicalResource('manual-shortcut','manual-equipment',technicalResource);
  el('ski850-controls').hidden=plan!==plans.ski850;
  el('outlander-controls').hidden=plan!==plans.outlander;
  el('ktm-controls').hidden=plan!==plans.ktm500;
@@ -7412,6 +7417,7 @@ function identificationRow() {return identificationRows()[Number(el('id-componen
 
 function setIdentificationEquipment() {
  const equipment=identificationPlan();
+ setTechnicalResource('id-manual-shortcut','id-manual-equipment',technicalResources[equipment.id]);
  el('identification-wiring-shortcut').hidden=!equipment.views?.wiring2016;
  const available=identificationComponents[equipment.id];
  const ids=Object.keys(available);
