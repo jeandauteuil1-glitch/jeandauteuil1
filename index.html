@@ -199,10 +199,22 @@ body.plan-fallback-open{overflow:hidden}
 @media(max-width:650px) and (orientation:portrait){
  #diagnostic-viewer.plan-expanded{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
  .plan-expanded .viewer-tools{max-height:37vh;max-height:37dvh;border-right:0}
- .plan-expanded .viewer-tools>.bar:first-child{display:none}
+ .plan-expanded .viewer-tools>.bar:nth-child(2){display:none}
  .plan-expanded .meter-deck{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
 .client-complaint{margin-top:.8rem}
+.fullscreen-panel-picker{display:none}
+.plan-expanded #fullscreen-commands .card{border:0;border-radius:0;border-top:1px solid var(--line)}
+@media(max-width:650px) and (orientation:portrait){
+ #diagnostic-viewer.plan-expanded .fullscreen-panel-picker{
+  display:flex;position:sticky;top:0;z-index:1;padding:.3rem .55rem;background:#f8fbfb;border-bottom:1px solid var(--line)
+ }
+ .fullscreen-panel-picker button{font-size:.875rem;min-height:2.15rem}
+ .fullscreen-panel-picker button[aria-pressed=true]{background:var(--accent);color:white;border-color:var(--accent)}
+ #diagnostic-viewer.plan-expanded:not([data-fullscreen-panel=commands]) #fullscreen-commands{display:none}
+ #diagnostic-viewer.plan-expanded[data-fullscreen-panel=commands] :is(#instrument-picker,#meter-deck,#multi-plan-nav,#yz-diagram-legend){display:none}
+ #diagnostic-viewer.plan-expanded[data-fullscreen-panel=commands] #probe-layer>[id^="wire-"]{visibility:hidden}
+}
 </style></head>
 <body>
 <header class="site-header"><div><p>DEP 5367 · Module 8</p><h1>Simulateur de diagnostic électrique</h1><nav class="workspace-tabs" aria-label="Activités">
@@ -543,7 +555,12 @@ body.plan-fallback-open{overflow:hidden}
 </div></aside>
 <div class="layout-right">
 <section id="diagnostic-viewer" class="card viewer" aria-labelledby="viewer-title">
-<div class="viewer-tools"><div class="bar"><h2 id="viewer-title">Plan électrique</h2></div>
+<div class="viewer-tools">
+<div class="fullscreen-panel-picker group" role="group" aria-label="Panneau de diagnostic">
+<button id="fullscreen-instruments-toggle" type="button" aria-controls="meter-deck" aria-pressed="true">Instruments</button>
+<button id="fullscreen-commands-toggle" type="button" aria-controls="fullscreen-commands" aria-pressed="false">Commandes</button>
+</div>
+<div class="bar"><h2 id="viewer-title">Plan électrique</h2></div>
 <div id="instrument-picker" class="tool-chooser" role="group" aria-label="Choix de l’instrument">
 <button id="choose-voltmeter" type="button" aria-pressed="true" aria-controls="voltmeter-panel">Multimètre</button>
 <button id="choose-lamp" type="button" aria-pressed="false" aria-controls="lamp-panel">Lampe témoin à DEL</button>
@@ -599,6 +616,7 @@ body.plan-fallback-open{overflow:hidden}
 </div>
 <div class="group actions"><button id="record" class="primary" disabled>Consigner la mesure</button><button id="clear">Tout débrancher</button></div>
 </div></div>
+<div id="fullscreen-commands"></div>
 <div id="multi-plan-nav" class="bar" hidden>
 <div class="group"><button id="multi-circuit" type="button" aria-pressed="true">Schéma du circuit</button><button id="multi-general" type="button" aria-pressed="false">Plan général</button>
 <button id="multi-location" type="button" aria-pressed="false" hidden>Repérage des composants</button>
@@ -7881,12 +7899,11 @@ window.addEventListener('beforeprint',()=>{
 
 selectPlan();
 
-function enablePlanFullscreen(viewerId, buttonId, viewportId, resizePlan, probeLayer) {
+function enablePlanFullscreen(viewerId, buttonId, viewportId, resizePlan, moves=[]) {
  const viewer=el(viewerId);
  const button=el(buttonId);
  const viewport=el(viewportId);
- const probeParent=probeLayer?.parentNode;
- const probeNext=probeLayer?.nextSibling;
+ const movedElements=moves.map(([element,target])=>({element,target,parent:element.parentNode,next:element.nextSibling}));
  const inactiveSiblings=[];
  let active=false;
  let changing=false;
@@ -7901,7 +7918,7 @@ function enablePlanFullscreen(viewerId, buttonId, viewportId, resizePlan, probeL
    viewer.removeAttribute('data-fullscreen-fallback');
    document.body.classList.remove('plan-fallback-open');
    for(const sibling of inactiveSiblings.splice(0)) sibling.inert=false;
-   if(probeLayer) probeParent.insertBefore(probeLayer,probeNext);
+   for(const {element,parent,next} of movedElements) parent.insertBefore(element,next);
   }
   requestAnimationFrame(()=>{
    resizePlan();
@@ -7929,7 +7946,7 @@ function enablePlanFullscreen(viewerId, buttonId, viewportId, resizePlan, probeL
    else if(document.fullscreenElement===viewer) await document.exitFullscreen();
    return;
   }
-  if(probeLayer) viewer.append(probeLayer);
+  for(const {element,target} of movedElements) target.append(element);
   if(!viewer.requestFullscreen||!document.fullscreenEnabled) {
    enterFallback();
    return;
@@ -7958,6 +7975,23 @@ function enablePlanFullscreen(viewerId, buttonId, viewportId, resizePlan, probeL
  }
 }
 
-enablePlanFullscreen('diagnostic-viewer','plan-fullscreen','scroll',resize,el('probe-layer'));
+const diagnosticViewer=el('diagnostic-viewer');
+const fullscreenTools=diagnosticViewer.querySelector('.viewer-tools');
+const fullscreenInstrumentsToggle=el('fullscreen-instruments-toggle');
+const fullscreenCommandsToggle=el('fullscreen-commands-toggle');
+function selectFullscreenPanel(panel) {
+ diagnosticViewer.dataset.fullscreenPanel=panel;
+ fullscreenInstrumentsToggle.setAttribute('aria-pressed',String(panel==='instruments'));
+ fullscreenCommandsToggle.setAttribute('aria-pressed',String(panel==='commands'));
+ fullscreenTools.scrollTop=0;
+ drawProbes();
+}
+fullscreenInstrumentsToggle.addEventListener('click',()=>selectFullscreenPanel('instruments'));
+fullscreenCommandsToggle.addEventListener('click',()=>selectFullscreenPanel('commands'));
+fullscreenTools.addEventListener('scroll',drawProbes,{passive:true});
+enablePlanFullscreen('diagnostic-viewer','plan-fullscreen','scroll',resize,[
+ [el('probe-layer'),diagnosticViewer],
+ [el('diagnostic-commands'),el('fullscreen-commands')]
+]);
 enablePlanFullscreen('identification-viewer','id-fullscreen','id-scroll',resizeIdentification);
 </script></body></html>
