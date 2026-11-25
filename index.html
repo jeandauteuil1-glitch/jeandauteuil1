@@ -80,6 +80,7 @@ main{max-width:1460px;margin:auto;padding:1rem;display:grid;grid-template-column
 .key-reference p{margin:.45rem 0 0}
 #multi-plan-nav{border-top:1px solid var(--line);justify-content:flex-start}
 #multi-lead-note{width:100%;margin:0}
+#manual-shortcut{font-size:.82rem;text-underline-offset:.15em}
 .diagram-legend{padding:.6rem 1rem;border-top:1px solid var(--line);background:#f6faf9}
 .diagram-legend summary{cursor:pointer;font-size:.9rem;font-weight:750}
 .diagram-legend ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(13rem,100%),1fr));gap:.26rem .8rem;margin:.5rem 0 0;padding:0}
@@ -540,6 +541,7 @@ body.identifying #probe-layer{display:none!important}
 <div class="group"><button id="multi-circuit" type="button" aria-pressed="true">Schéma du circuit</button><button id="multi-general" type="button" aria-pressed="false">Plan général</button>
 <button id="multi-location" type="button" aria-pressed="false" hidden>Repérage des composants</button>
 <button id="multi-wiring" type="button" aria-pressed="false" hidden>Plan complet BRP 2016</button></div>
+<a id="manual-shortcut" href="https://drive.google.com/file/d/1WPU5QgdgdyF0qItsPJJZJKzG61GZ_elq/view?usp=sharing" target="_blank" rel="noopener noreferrer" hidden>Manuel d’atelier · Backcountry 850 E-TEC 2023</a>
 <div id="multi-page-links" class="group" aria-label="Pages du schéma"></div>
 <p id="multi-lead-note" class="compact" role="status"></p>
 </div>
@@ -6042,6 +6044,7 @@ function selectPlan() {
  el('kubota-preheat').disabled=el('kubota-preheat').hidden=plan!==plans.kubota;
  el('multi-general').textContent=plan===plans.kubota?'Plans du manuel':'Plan général';
  el('multi-plan-nav').hidden=!plan.views;
+ el('manual-shortcut').hidden=plan!==plans.ski850;
  el('ski850-controls').hidden=plan!==plans.ski850;
  el('outlander-controls').hidden=plan!==plans.outlander;
  el('ktm-controls').hidden=plan!==plans.ktm500;
