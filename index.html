@@ -226,25 +226,26 @@ body.plan-fallback-open{overflow:hidden}
 }
 .tool-chooser button{min-width:min(100%,10rem)}
 
-#indian-resource-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.55rem}
-#indian-resource-actions .technical-resource-link{margin:0;align-items:flex-start;text-align:left;font-size:.9rem}
-#indian-plan-dialog{box-sizing:border-box;width:min(96vw,1450px);height:94vh;height:94dvh;max-width:none;max-height:none;padding:0;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:#fff}
-#indian-plan-dialog::backdrop{background:#101d23b5}
-#indian-plan-dialog[open]{display:flex;flex-direction:column}
-.indian-view-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;padding:.65rem .85rem}
+#diagnostic-main[data-reference-plan] :is(
+ #diagnostic-wiring-shortcut,label[for=system],#system,.client-complaint,label[for=case],#case,
+ #standard-complaint>p,#diagnostic-commands,#teacher-panel,#diagnostic-viewer,#diagnostic-log
+),
+body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{display:none!important}
+#indian-reference-viewer .viewer-plan{display:flex;flex-direction:column;min-width:0;min-height:0}
+.indian-view-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.65rem;padding:.7rem .85rem}
 .indian-view-heading h2,.indian-view-heading p{margin:0}
-.indian-view-toolbar{padding:.42rem .85rem;border-block:1px solid var(--line);background:#f8fbfb}
+.indian-view-toolbar{padding:.42rem .85rem;background:#f8fbfb}
 .indian-view-toolbar select{min-width:0;max-width:100%;padding:.37rem}
 .indian-view-toolbar button{min-width:2.25rem}
 #indian-zoom-level{font-variant-numeric:tabular-nums}
-#indian-viewport{flex:1;min-height:0;overflow:auto;background:#e4ebed;overscroll-behavior:contain}
+#indian-viewport{height:clamp(300px,70vh,850px);overflow:auto;background:#e4ebed;overscroll-behavior:contain}
+#indian-reference-viewer.plan-expanded #indian-viewport{height:auto}
 #indian-diagram-image{display:block;height:auto;max-width:none;margin-inline:auto}
 .indian-view-note{margin:0;padding:.45rem .85rem}
 @media(max-width:650px){
- #indian-plan-dialog{width:100vw;height:100vh;height:100dvh;border:0;border-radius:0}
  .indian-view-heading,.indian-view-toolbar,.indian-view-note{padding-inline:.55rem}
+ #indian-viewport{height:clamp(240px,62vh,620px)}
 }
-
 </style></head>
 <body>
 <header class="site-header"><div><p>DEP 5367 · Module 8</p><h1>Simulateur de diagnostic électrique</h1><nav class="workspace-tabs" aria-label="Activités">
@@ -252,16 +253,6 @@ body.plan-fallback-open{overflow:hidden}
 <button id="choose-diagnostic" type="button" aria-pressed="true">Diagnostic sur plan</button>
 <button id="choose-bench" type="button" aria-pressed="false">Banc de composants</button>
 </nav>
-<div id="indian-resource-actions">
-<button id="open-indian-plan" class="technical-resource-link" type="button" aria-haspopup="dialog">
- <span>Plan électrique</span>
- <small>Indian Challenger · Faisceau du châssis</small>
-</button>
-<a id="indian-technical-resource" class="technical-resource-link" href="https://drive.google.com/file/d/16O8mpWblb1-ujCt6msIPkIJ6DN_61Yf_/view?usp=sharing" target="_blank" rel="noopener noreferrer">
- <span>Ressource technique</span>
- <small>Indian Challenger / Pursuit · Manuel d’atelier 2020–2024</small>
-</a>
-</div>
 </div>
 <div class="header-share">
 <a class="simulator-qr" href="https://jeandauteuil1-glitch.github.io/jeandauteuil1/">
@@ -275,7 +266,7 @@ body.plan-fallback-open{overflow:hidden}
 <aside><div id="diagnostic-sidebar">
 
 <section id="standard-complaint" class="card controls" aria-labelledby="plainte">
-<label for="plan">Plan électrique</label>
+<label for="plan" id="plan-label">Plan électrique</label>
 <select id="plan">
 <option value="school">Tracteur Craftsman · 917.277220</option>
 <option value="g3500">Génératrice Lifan G3500 · 120/240 V</option>
@@ -297,6 +288,7 @@ body.plan-fallback-open{overflow:hidden}
 <option value="yamaha">Yamaha XVS1100L/LC</option>
 <option value="series-grips">Harley-Davidson · Poignées chauffantes en série</option>
 <option value="gl1800">Honda GL1800 · Sièges chauffants</option>
+<option value="indian-reference">Indian Challenger · Faisceau du châssis</option>
 </select>
 <button id="diagnostic-wiring-shortcut" class="primary complete-plan-shortcut" type="button" aria-controls="scroll" hidden>Ouvrir le plan électrique complet BRP 2016</button>
 <label for="system">Système</label><select id="system">
@@ -595,6 +587,40 @@ body.plan-fallback-open{overflow:hidden}
 <details class="card" id="bench-answer"><summary>Corrigé du banc</summary><p id="bench-correction"></p></details>
 </div></aside>
 <div class="layout-right">
+<section id="indian-reference-viewer" class="card viewer" aria-labelledby="indian-plan-title" aria-describedby="indian-plan-note" hidden>
+<div class="viewer-plan">
+ <div class="indian-view-heading">
+  <div><h2 id="indian-plan-title">Indian Challenger</h2><p class="compact">Faisceau du châssis · HWLC G1 V1</p></div>
+<a id="indian-technical-resource" class="technical-resource-link" href="https://drive.google.com/file/d/16O8mpWblb1-ujCt6msIPkIJ6DN_61Yf_/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+ <span>Ressource technique</span>
+ <small>Indian Challenger / Pursuit · Manuel d’atelier 2020–2024</small>
+</a>
+ </div>
+ <div class="group plan-toolbar indian-view-toolbar" role="group" aria-label="Affichage du plan Indian">
+  <label for="indian-zone">Zone</label>
+  <select id="indian-zone">
+   <option value="all">Plan complet</option>
+   <option value="legend">Légende</option>
+   <option value="starter">Solénoïde de démarreur</option>
+   <option value="handlebars">Guidon et console</option>
+   <option value="lights">Éclairage arrière</option>
+   <option value="engine">Connecteur châssis / moteur</option>
+   <option value="ecm">Calculateur ECM</option>
+   <option value="fuses">Boîte à fusibles</option>
+   <option value="ground">Masses et régulateur de tension</option>
+  </select>
+  <button id="indian-shrink" aria-label="Réduire le zoom" type="button">−</button>
+  <button id="indian-enlarge" aria-label="Agrandir le zoom" type="button">+</button>
+  <button id="indian-fullscreen" class="fullscreen-toggle" type="button" aria-pressed="false" aria-controls="indian-reference-viewer">Plein écran</button>
+  <output id="indian-zoom-level" aria-label="Niveau de zoom"></output>
+ </div>
+ <div id="indian-viewport" class="scroll" tabindex="0" role="region" aria-label="Plan électrique agrandi">
+  <img id="indian-diagram-image" src="indian-faisceau.webp" loading="lazy" width="2560" height="1678"
+       alt="Plan en couleur du faisceau du châssis. Le solénoïde est à gauche, le calculateur et la boîte à fusibles sont en bas et le régulateur est en bas à droite.">
+ </div>
+ <p class="compact indian-view-note" id="indian-plan-note">Schéma de référence. Certains numéros de broches sont trop petits dans l’image d’origine pour être confirmés.</p>
+</div>
+</section>
 <section id="diagnostic-viewer" class="card viewer" aria-labelledby="viewer-title">
 <div class="viewer-tools">
 <div class="fullscreen-panel-picker group" role="group" aria-label="Panneau de diagnostic">
@@ -791,35 +817,6 @@ body.plan-fallback-open{overflow:hidden}
     </div>
   </section>
 </main>
-
-<dialog id="indian-plan-dialog" aria-labelledby="indian-plan-title" aria-describedby="indian-plan-note">
- <div class="indian-view-heading">
-  <div><h2 id="indian-plan-title">Indian Challenger</h2><p class="compact">Faisceau du châssis · HWLC G1 V1</p></div>
-  <form method="dialog"><button type="submit" autofocus>Fermer</button></form>
- </div>
- <div class="group indian-view-toolbar" role="group" aria-label="Affichage du plan Indian">
-  <label for="indian-zone">Zone</label>
-  <select id="indian-zone">
-   <option value="all">Plan complet</option>
-   <option value="legend">Légende</option>
-   <option value="starter">Solénoïde de démarreur</option>
-   <option value="handlebars">Guidon et console</option>
-   <option value="lights">Éclairage arrière</option>
-   <option value="engine">Connecteur châssis / moteur</option>
-   <option value="ecm">Calculateur ECM</option>
-   <option value="fuses">Boîte à fusibles</option>
-   <option value="ground">Masses et régulateur de tension</option>
-  </select>
-  <button id="indian-shrink" aria-label="Réduire le zoom" type="button">−</button>
-  <button id="indian-enlarge" aria-label="Agrandir le zoom" type="button">+</button>
-  <output id="indian-zoom-level" aria-label="Niveau de zoom"></output>
- </div>
- <div id="indian-viewport" tabindex="0" role="region" aria-label="Plan électrique agrandi">
-  <img id="indian-diagram-image" src="indian-faisceau.webp" loading="lazy" width="2560" height="1678"
-       alt="Plan en couleur du faisceau du châssis. Le solénoïde est à gauche, le calculateur et la boîte à fusibles sont en bas et le régulateur est en bas à droite.">
- </div>
- <p class="compact indian-view-note" id="indian-plan-note">Schéma de référence. Certains numéros de broches sont trop petits dans l’image d’origine pour être confirmés.</p>
-</dialog>
 
 <section id="id-print-sheet" aria-label="Fiche de repérage à remettre"></section>
 
@@ -6258,7 +6255,18 @@ function setTechnicalResource(linkId,labelId,resource) {
  }
 }
 
+const indianReferenceId='indian-reference';
+
+function updateIndianReference() {
+ const visible=!benchOpen&&el('plan').value===indianReferenceId;
+ el('diagnostic-main').toggleAttribute('data-reference-plan',visible);
+ el('indian-reference-viewer').hidden=!visible;
+ el('standard-complaint').setAttribute('aria-labelledby',visible?'plan-label':'plainte');
+ return visible;
+}
+
 function selectPlan() {
+ if(updateIndianReference()) return;
  plan=plans[el('plan').value];
  if(plan!==plans.yz450) setYamahaLegend('yz-diagram-legend',null);
  points=plan.points;
@@ -7397,6 +7405,7 @@ function selectWorkspace(open) {
  el('plan-fullscreen').hidden=open;
  el('choose-diagnostic').setAttribute('aria-pressed',String(!open));
  el('choose-bench').setAttribute('aria-pressed',String(open));
+ updateIndianReference();
  render();
 }
 
@@ -7876,7 +7885,9 @@ el('choose-identification').addEventListener('click',()=>{
  el('diagnostic-main').hidden=true;
  for(const id of ['diagnostic','bench','identification']) el('choose-'+id).setAttribute('aria-pressed',String(id==='identification'));
  if(!identificationEquipment.size) {
-  for(const option of el('plan').options) identificationEquipment.set(option.value,option.text);
+  for(const option of el('plan').options) {
+   if(option.value!==indianReferenceId) identificationEquipment.set(option.value,option.text);
+  }
   el('id-equipment').replaceChildren(...Array.from(identificationEquipment,([id,name])=>new Option(name,id)));
   el('id-equipment').value=plan.id;
   el('id-student').value=identificationState.student||'';
@@ -8117,7 +8128,7 @@ el('plan-fullscreen').addEventListener('click',()=>{el('fullscreen-record-feedba
 enablePlanFullscreen('identification-viewer','id-fullscreen','id-scroll',resizeIdentification);
 
 {
- const dialog=el('indian-plan-dialog');
+ const viewer=el('indian-reference-viewer');
  const viewport=el('indian-viewport');
  const diagram=el('indian-diagram-image');
  const zone=el('indian-zone');
@@ -8153,14 +8164,14 @@ enablePlanFullscreen('identification-viewer','id-fullscreen','id-scroll',resizeI
   zoom=clampZoom(zoom*factor);
   draw(x,y);
  }
- el('open-indian-plan').addEventListener('click',()=>{
-  dialog.showModal();
-  zone.value='all';
-  focusZone();
- });
  zone.addEventListener('change',focusZone);
  el('indian-shrink').addEventListener('click',()=>changeZoom(1/1.3));
  el('indian-enlarge').addEventListener('click',()=>changeZoom(1.3));
- window.addEventListener('resize',()=>{if(dialog.open) focusZone();});
+ function resizeReference() {
+  if(!viewer.hidden&&viewport.clientWidth) focusZone();
+ }
+ enablePlanFullscreen('indian-reference-viewer','indian-fullscreen','indian-reference-viewer',resizeReference);
+ if(typeof ResizeObserver==='function') new ResizeObserver(resizeReference).observe(viewer);
+ else window.addEventListener('resize',resizeReference);
 }
 </script></body></html>
