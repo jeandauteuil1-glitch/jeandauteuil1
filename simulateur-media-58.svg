@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" width="960" height="470">
+ <title>Harley-Davidson — kit de poignées chauffantes en série</title>
+ <desc>Le fil rouge passe par le fusible et alimente la commande. Le fil orange à rayure blanche arrive des accessoires. Les deux résistances de chauffe sont en série vers la masse par le fil noir.</desc>
+ <defs>
+  <style>
+   text{font-family:system-ui,sans-serif;fill:#202d35}
+   .label{font-size:21px;font-weight:700}
+   .small{font-size:17px}
+   .wire{fill:none;stroke:#38464e;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+   .red{stroke:#ac2626}
+   .orange{stroke:#a34700}
+   .stripe{stroke:#fff;stroke-width:1.8;stroke-dasharray:6 7}
+   .black{stroke:#263139}
+   .block{fill:#eff4f6;stroke:#354650;stroke-width:2}
+   .red-text{fill:#8b2525}
+   .orange-text{fill:#833800}
+  </style>
+ </defs>
+ <rect width="960" height="470" fill="#fff"/>
+ <text x="28" y="42" font-size="27" font-weight="760">Harley-Davidson · Poignées chauffantes</text>
+ <text x="28" y="70" class="small">Kit J04259 · Circuit en série</text>
+ <path class="wire red" d="M200 113 V139 M200 168 V206"/>
+ <rect x="166" y="139" width="68" height="29" rx="5" fill="#fff4ed" stroke="#ac2626" stroke-width="2"/>
+ <path class="wire red" d="M175 153 H225"/>
+ <text x="251" y="161" class="small red-text">Fusible en ligne</text>
+ <text x="200" y="106" text-anchor="middle" class="label red-text">R · + batterie</text>
+ <path class="wire orange" d="M464 113 V181 H307 V206"/>
+ <path class="wire stripe" d="M464 113 V181 H307 V206"/>
+ <text x="464" y="106" text-anchor="middle" class="label orange-text">O/W · + accessoires</text>
+ <rect x="137" y="206" width="221" height="65" rx="9" class="block"/>
+ <text x="247" y="235" text-anchor="middle" class="label">Commande</text>
+ <text x="247" y="258" text-anchor="middle" class="small">de chauffage</text>
+ <path class="wire" d="M247 271 V351 H276 M448 351 H528 M567 351 H619"/>
+ <rect x="276" y="321" width="172" height="60" rx="9" class="block"/>
+ <rect x="619" y="321" width="172" height="60" rx="9" class="block"/>
+ <path class="wire" d="M291 351 H306 L319 337 L333 365 L347 337 L361 365 L375 337 L389 365 L402 351 H433
+ M634 351 H649 L662 337 L676 365 L690 337 L704 365 L718 337 L732 365 L745 351 H776"/>
+ <text x="362" y="411" text-anchor="middle" class="label">Poignée gauche</text>
+ <text x="705" y="411" text-anchor="middle" class="label">Poignée droite</text>
+ <path class="wire" d="M528 337 V365 L544 351 L528 337 M550 337 L567 351 L550 365"/>
+ <text x="548" y="306" text-anchor="middle" class="small">Connecteur</text>
+ <path class="wire black" d="M791 351 H851 V152 M851 152 V117 M828 117 H874 M835 109 H867 M843 101 H859"/>
+ <text x="823" y="104" text-anchor="end" class="label">BK · Masse</text>
+ </svg>
