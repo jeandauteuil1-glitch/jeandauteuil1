@@ -246,6 +246,10 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
  .indian-view-heading,.indian-view-toolbar,.indian-view-note{padding-inline:.55rem}
  #indian-viewport{height:clamp(240px,62vh,620px)}
 }
+#ninja-reference-viewer .viewer-plan{display:flex;flex-direction:column;min-width:0;min-height:0}
+#ninja-viewport{height:clamp(300px,75vh,960px);overflow:auto;overscroll-behavior:contain}
+#ninja-reference-viewer.plan-expanded #ninja-viewport{height:auto}
+#ninja-plan-image{display:block;height:auto;max-width:none;margin-inline:auto}
 </style></head>
 <body>
 <header class="site-header"><div><p>DEP 5367 · Module 8</p><h1>Simulateur de diagnostic électrique</h1><nav class="workspace-tabs" aria-label="Activités">
@@ -288,6 +292,8 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
 <option value="yamaha">Yamaha XVS1100L/LC</option>
 <option value="series-grips">Harley-Davidson · Poignées chauffantes en série</option>
 <option value="gl1800">Honda GL1800 · Sièges chauffants</option>
+<option value="dr2015">Suzuki DR200 · 2015</option>
+<option value="ninja300-reference">Kawasaki Ninja 300 ABS · 2015</option>
 <option value="indian-reference">Indian Challenger · Faisceau du châssis</option>
 </select>
 <button id="diagnostic-wiring-shortcut" class="primary complete-plan-shortcut" type="button" aria-controls="scroll" hidden>Ouvrir le plan électrique complet BRP 2016</button>
@@ -404,6 +410,13 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
 <label><input id="tractor-seat" type="checkbox"> Opérateur sur le siège</label>
 <label id="tractor-reverse-row"><input id="tractor-reverse" type="checkbox"> Marche arrière</label>
 <button id="x520-rio" type="button" hidden>Demander la commande RIO</button>
+</div>
+<div id="dr2015-controls" hidden>
+<label><input type="checkbox" id="dr2015-neutral"> Boîte au point mort</label>
+<label><input type="checkbox" id="dr2015-stand"> Béquille latérale relevée</label>
+<label><input type="checkbox" id="dr2015-run" checked> Coupe-circuit sur RUN</label>
+<label><input type="checkbox" id="dr2015-clutch"> Levier d’embrayage tiré</label>
+<label><input type="checkbox" id="dr2015-start"> Maintenir le bouton de démarrage</label>
 </div>
 <div id="suzuki-controls" hidden>
 <label><input type="checkbox" id="suzuki-clutch"> Levier d’embrayage tiré</label>
@@ -587,6 +600,27 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
 <details class="card" id="bench-answer"><summary>Corrigé du banc</summary><p id="bench-correction"></p></details>
 </div></aside>
 <div class="layout-right">
+<section id="ninja-reference-viewer" class="card viewer" aria-labelledby="ninja-title" hidden>
+<div class="viewer-plan">
+ <div class="indian-view-heading"><h2 id="ninja-title">Kawasaki Ninja 300 ABS · 2015</h2></div>
+ <div class="group plan-toolbar indian-view-toolbar" role="group" aria-label="Affichage des plans Kawasaki">
+  <label for="ninja-circuit">Circuit</label>
+  <select id="ninja-circuit">
+   <option value="demarrage">Démarrage · p. 16-54</option>
+   <option value="charge">Charge · p. 16-39</option>
+   <option value="eclairage">Éclairage · p. 16-59</option>
+   <option value="allumage">Allumage · p. 16-47</option>
+  </select>
+  <button id="ninja-minus" type="button" aria-label="Réduire le zoom">−</button>
+  <button id="ninja-fit" type="button">Plan complet</button>
+  <button id="ninja-plus" type="button" aria-label="Agrandir le zoom">+</button>
+  <button id="ninja-fullscreen" type="button" class="fullscreen-toggle" aria-pressed="false" aria-controls="ninja-reference-viewer">Plein écran</button>
+ </div>
+ <div id="ninja-viewport" class="scroll" role="region" aria-label="Plan électrique Kawasaki" tabindex="0">
+  <img id="ninja-plan-image" loading="lazy" alt="">
+ </div>
+</div>
+</section>
 <section id="indian-reference-viewer" class="card viewer" aria-labelledby="indian-plan-title" aria-describedby="indian-plan-note" hidden>
 <div class="viewer-plan">
  <div class="indian-view-heading">
@@ -3367,7 +3401,24 @@ const technicalResources = {
  outlander:{label:'Can-Am Outlander · 2023',url:'https://drive.google.com/file/d/1qLNRxiZPLhA6l5kyubMGZ9sMbFQDWPwj/view?usp=sharing'},
  f7:{label:'Arctic Cat Firecat F7 · 2003',url:'https://drive.google.com/file/d/1Wp1KuynzGhwmp10wVXdAyeuU108pzDhv/view?usp=sharing'}
 };
+const dr2015Points=[
+ ['bp','Batterie + · R',171,550],['bn','Batterie −',169,612],['ground','Masse du démarreur',527,573],
+ ['fi','Fusible · entrée',263,336],['fo','Fusible · sortie',318,337],
+ ['kb','Contacteur à clé · entrée R',466,338],['ks','Contacteur à clé · sortie',503,340],
+ ['interlock-in','Relais de béquille · alimentation',839,347],['interlock-out','Relais de béquille · sortie O/Y',873,349],
+ ['stand','Contacteur de béquille · G',838,708],['neutral','Contacteur de point mort · Bl',638,710],
+ ['interlock-return','Relais de béquille · retour G/W',838,624],
+ ['kill-in','Coupe-circuit · entrée O/Y',961,351],['kill-out','Coupe-circuit · sortie O/W',993,351],
+ ['start-feed','Bouton de démarrage · entrée',1055,402],['start-out','Bouton de démarrage · sortie',1056,432],
+ ['clutch-in','Contacteur d’embrayage · entrée',1055,518],['clutch-out','Contacteur d’embrayage · sortie Y/G',1055,549],
+ ['sc','Bobine du relais de démarreur · Y/G',423,461],['sg','Bobine du relais de démarreur · masse B/W',344,576],
+ ['sp','Relais de démarreur · arrivée de puissance',320,435],['so','Relais de démarreur · sortie de puissance',352,435],
+ ['motor','Démarreur · alimentation',441,436],['mg','Démarreur · retour',527,536],
+ ['ign-feed','Alimentation de l’allumage · O/W',1107,354]
+].map(([id,name,x,y])=>[id,name,x-62,y-201]);
 const plans = {
+ dr2015:{id:'dr2015',name:'Suzuki DR200 · 2015',src:'suzuki-dr200-2015-demarrage.jpg',
+  width:1288,height:799,points:dr2015Points,internalNodes:['neutral-lamp'],systemIds:['starting']},
  yz450:{...yzViews.starting,id:'yz450',name:'Yamaha YZ450F · 2023',views:yzViews,
   points:[...new Map(Object.values(yzViews).flatMap(view=>view.points.map(point=>[point[0],point]))).values()],
   systemIds:['starting','charging','yz-injection']},
@@ -3436,6 +3487,10 @@ let pointById = Object.fromEntries(points.map(p => [p[0],p]));
 let nodes = [...points.map(p => p[0]),...(plan.internalNodes||[])];
 const complaint = '« Quand je tourne la clé à START, le démarreur ne tourne pas, même avec la pédale enfoncée et la prise de force désengagée. »';
 const scenarios = {
+ 'dr2015-stand-open':['« Elle démarre au point mort, mais elle refuse de démarrer en vitesse, même avec la béquille relevée et le levier d’embrayage tiré. »','Contacteur de béquille ouvert. En vitesse, compare la tension du retour G/W et de la sortie O/Y du relais, puis reviens au point mort pour comparer.'],
+ 'dr2015-relay-open':['« Le témoin de point mort s’allume, mais le démarreur reste silencieux. »','Contact de puissance du relais de béquille ouvert. Avec la clé sur ON au point mort, compare l’alimentation du relais et sa sortie O/Y.'],
+ 'dr2015-clutch-open':['« Le témoin de point mort s’allume. Quand je tire l’embrayage et j’appuie sur START, le démarreur ne tourne pas. »','Contacteur d’embrayage ouvert. Avec le coupe-circuit sur RUN et le bouton de démarrage maintenu, compare les deux bornes du contacteur par rapport à la masse.'],
+
  'yz-start-switch':['« J’appuie sur START et le démarreur ne réagit pas. »','Le bouton START ne ferme plus son contact. Moteur arrêté, isole le bouton et mesure en Ω entre les deux fils pendant que tu maintiens START. Une lecture OL alors que le bouton est enfoncé révèle le circuit ouvert.'],
  'yz-start-cable':['« Le relais clique, mais le démarreur entraîne le moteur très lentement. »','Le câble positif entre la batterie et la borne d’entrée du relais présente une résistance parasite. Compare la tension de la batterie et la tension à la borne du relais pendant START. Mesurer directement entre ces deux points fait ressortir la chute sous charge.'],
  'yz-charge-stator':['« La batterie doit être rechargée après chaque sortie. »','L’enroulement monophasé est coupé. Moteur arrêté et stator débranché, mesure entre les deux fils blancs. Le manuel indique 0,408 à 0,612 Ω. La mesure OL confirme la coupure.'],
@@ -3601,6 +3656,7 @@ const hondaSystems = {
  charging:[['honda-stator','A'],['honda-regulator','B']],
  lighting:[['honda-low','A'],['honda-light-ground','B']]
 };
+const dr2015Systems={starting:[['dr2015-stand-open','A'],['dr2015-relay-open','B'],['dr2015-clutch-open','C']]};
 const suzukiSystems={
  starting:[['suzuki-clutch','A'],['suzuki-relay','B']],
  charging:[['suzuki-stator','A'],['suzuki-regulator','B']],
@@ -3804,9 +3860,9 @@ function across(a,b,left,right) {
 }
 
 function circuit() {
- const state=({school:tractorCircuit,honda:hondaCircuit,foreman:foremanCircuit,kodiak:kodiakCircuit,ski:skiCircuit,ski850:shotCircuit,outlander:outlanderCircuit,ktm500:ktmCircuit,f7:f7Circuit,yz450:yzCircuit,gl1800:gl1800Circuit,'series-grips':seriesGripCircuit,suzuki:suzukiCircuit,yamaha:yamahaCircuit,mtd:mtdCircuit,x520:x520Circuit,kubota:kubotaCircuit,crf:crfCircuit,g3500:generatorCircuit,ef2000:efCircuit})[plan.id]();
+ const state=({school:tractorCircuit,honda:hondaCircuit,foreman:foremanCircuit,kodiak:kodiakCircuit,ski:skiCircuit,ski850:shotCircuit,outlander:outlanderCircuit,ktm500:ktmCircuit,f7:f7Circuit,yz450:yzCircuit,gl1800:gl1800Circuit,'series-grips':seriesGripCircuit,suzuki:suzukiCircuit,dr2015:dr2015Circuit,yamaha:yamahaCircuit,mtd:mtdCircuit,x520:x520Circuit,kubota:kubotaCircuit,crf:crfCircuit,g3500:generatorCircuit,ef2000:efCircuit})[plan.id]();
  if(instrument!=='voltmeter' || el('meter-mode').value!=='amps' || !el('meter-break').checked) return state;
- const gap=currentInsertions[plan.id][system];
+ const gap=currentInsertions[plan.id]?.[system];
  if(!gap) return state;
  const bank=gap.ac?'acEdges':'edges';
  const jumper=state[bank].find(({a,b})=>across(a,b,gap.a,gap.b));
@@ -4136,6 +4192,58 @@ function seriesGripCircuit() {
  if(fault!=='series-grips-open') add('grip-right-in','grip-return',3);
  add('grip-return','bn',.01);
  return {edges,dcSources:{bp:12.6,bn:0,'grip-acc':accessoryOn?12.6:0},acEdges:[],acSources:{bp:0,bn:0}};
+}
+
+function dr2015Circuit() {
+ const fault=repaired?'normal':scenario;
+ const keyOn=el('key').value==='run';
+ const neutral=el('dr2015-neutral').checked;
+ const stand=el('dr2015-stand').checked&&fault!=='dr2015-stand-open';
+ const interlock=keyOn&&(neutral||stand);
+ const interlockContact=interlock&&fault!=='dr2015-relay-open';
+ const run=el('dr2015-run').checked;
+ const start=el('dr2015-start').checked;
+ const clutch=el('dr2015-clutch').checked&&fault!=='dr2015-clutch-open';
+ const power=interlockContact&&run&&start&&clutch;
+ const edges=[];
+ const add=(a,b,resistance=.005,coords)=>{
+  const route=coords?.map(([x,y])=>[x-62,y-201].join(',')).join(' ');
+  edges.push({a,b,resistance,route});
+ };
+ add('bn','ground'); add('bn','mg'); add('bn','sg');
+ add('bp','fi',.005,[[171,550],[172,336],[263,336]]);
+ add('bp','sp',.005,[[171,550],[172,434],[320,435]]);
+ add('fi','fo',.005,[[263,336],[318,337]]);
+ add('fo','kb',.005,[[318,337],[466,338]]);
+ if(keyOn) add('kb','ks',.01,[[466,338],[503,340]]);
+ add('ks','interlock-in',.005,[[503,340],[839,347]]);
+ add('interlock-in','interlock-return',85);
+ add('interlock-return','stand');
+ // Represent the diode branches in their conducting states without backfeeding the neutral lamp.
+ if(neutral) {
+  add('neutral','bn');
+  add('interlock-return','neutral',3);
+  add('neutral-lamp','neutral',3);
+ }
+ if(stand) add('stand','bn',3);
+ add('ks','neutral-lamp',55);
+ if(interlockContact) add('interlock-in','interlock-out',.01,[[839,347],[873,349]]);
+ add('interlock-out','kill-in',.005,[[873,349],[961,351]]);
+ if(run) add('kill-in','kill-out',.01,[[961,351],[993,351]]);
+ add('kill-out','ign-feed',.005,[[993,351],[1107,354]]);
+ add('ign-feed','bn',1000);
+ add('kill-out','start-feed',.005,[[993,351],[1055,353],[1055,402]]);
+ if(start) add('start-feed','start-out',.01,[[1055,402],[1056,432]]);
+ add('start-out','clutch-in',.005,[[1056,432],[1055,518]]);
+ if(clutch) add('clutch-in','clutch-out',.01,[[1055,518],[1055,549]]);
+ add('clutch-out','sc',.005,[[1055,549],[1052,845],[421,856],[423,461]]);
+ add('sc','sg',5);
+ if(power) add('sp','so',.005,[[320,435],[352,435]]);
+ add('so','motor',.005,[[352,435],[441,436]]);
+ add('motor','mg',.12);
+ addInstrumentLoad(add);
+ return {edges,relay:power,power,sparkAllowed:interlockContact&&run,acEdges:[],acSources:{bn:0},killEdges:[],
+  dr2015:{neutralLamp:keyOn&&neutral}};
 }
 
 function suzukiCircuit() {
@@ -5237,6 +5345,14 @@ function renderSafetyContacts(brake,pto) {
  renderContact(609,536,648,(pto?700:686)-164,pto);
 }
 function isolatedResistance(red,black,state) {
+ if(plan===plans.dr2015) {
+  if(red===black) return 0;
+  const pairs=[['fi','fo'],['kb','ks'],['kill-in','kill-out'],['start-feed','start-out'],
+   ['clutch-in','clutch-out'],['sc','sg'],['interlock-in','interlock-return'],['neutral','bn'],['stand','bn']];
+  if(!pairs.some(([a,b])=>across(a,b,red,black))) return null;
+  return state.edges.find(({a,b})=>across(a,b,red,black))?.resistance??Infinity;
+ }
+
  if(plan===plans.ktm500) {
   const fault=repaired?'normal':scenario;
   const pair=(a,b)=>across(red,black,a,b);
@@ -5455,7 +5571,7 @@ function meterReading(volts,acVoltage,state,red,black) {
  if(mode==='dc' || !mode) return {text:format(volts[red]-volts[black])+' V'};
  if(mode==='amps') {
   const test=state.currentTest;
-  if(!currentInsertions[plan.id][system]) {
+  if(!currentInsertions[plan.id]?.[system]) {
    return {text:'— A',hint:(isGeneratorPlan()?'Choisis le système des sorties CA ou 12 V CC pour mesurer en série.':'Choisis le système de démarrage ou d’éclairage pour mesurer en A.')};
   }
   if(!test) return {text:'— A',hint:'Ouvre le point d’insertion du circuit pour faire la mesure en série.'};
@@ -5587,7 +5703,7 @@ function render() {
  el('honda-ac-guide').textContent=plan===plans.x520?'Mesure en V CA entre les deux fils blancs de G2, une pointe sur chaque fil.':plan===plans.mtd?'La sortie de charge RED/WHT se mesure en V CC. La sortie BLU alimente les phares en V CA.':(engineRunning?chargingTip:'Démarre le moteur. '+chargingTip);
  const isolation=mode==='ohms'||mode==='diode';
  const measuringAmps=mode==='amps';
- const gap=currentInsertions[plan.id][system];
+ const gap=currentInsertions[plan.id]?.[system];
  el('isolation-tools').hidden=!isolation;
  el('amp-tools').hidden=!measuringAmps;
  el('amp-enable').hidden=!gap;
@@ -5755,6 +5871,7 @@ function render() {
    }
   }
  }
+ if(plan===plans.dr2015) response+=' Témoin de point mort '+(state.dr2015.neutralLamp?'allumé.':'éteint.');
  if(plan===plans.kodiak&&system==='drive') {
   response+=Math.abs(volts['drive-motor-br']-volts['drive-motor-y'])>8?
    ' Le moteur de sélection reçoit sa tension.':' Le moteur de sélection n’est pas alimenté.';
@@ -5785,7 +5902,7 @@ function render() {
   'Vérifie que chaque siège chauffe sur demande lorsque le contact est mis.':
   plan===plans['series-grips']&&scenario==='normal'?
   'Vérifie que les deux poignées chauffent lorsque le contact est mis et que la commande est au maximum.':scenarios[scenario][0];
- el('answer').textContent=repaired?'Réparation simulée. Reproduis les conditions de la plainte et vérifie le résultat.':(scenario==='normal' && (system!=='starting' || plan===plans.honda || plan===plans.foreman || plan===plans.kodiak || plan===plans.ski) ? 'Fonctionnement normal du système sélectionné. Vérifie les commandes et les mesures.' : scenarios[scenario][1]);
+ el('answer').textContent=!repaired&&plan===plans.dr2015&&scenario==='normal'?'Clé sur ON et coupe-circuit sur RUN. Avec l’embrayage tiré, le bouton START commande le démarreur si la boîte est au point mort ou si la béquille est relevée.':repaired?'Réparation simulée. Reproduis les conditions de la plainte et vérifie le résultat.':(scenario==='normal' && (system!=='starting' || plan===plans.honda || plan===plans.foreman || plan===plans.kodiak || plan===plans.ski) ? 'Fonctionnement normal du système sélectionné. Vérifie les commandes et les mesures.' : scenarios[scenario][1]);
  el('retest').disabled=repaired||scenario==='normal';
  for(const id of ['flow','switches']) el(id).replaceChildren();
  el('flow-note').hidden=!el('show-flow').checked;
@@ -5959,7 +6076,7 @@ function updateEngine() {
  }
  render();
 }
-for(const id of ['key','pedal','pto','tractor-seat','tractor-reverse','ski-electric','ski-start','ski-disconnect','kodiak-neutral','kodiak-brake','kodiak-run','kodiak-start','foreman-neutral','foreman-run','foreman-start','crf-neutral','crf-clutch','crf-stand','crf-run','crf-start','honda-neutral','honda-start','suzuki-clutch','suzuki-start','yamaha-neutral','yamaha-run','yamaha-start']) el(id).addEventListener('change',updateEngine);
+for(const id of ['dr2015-neutral','dr2015-stand','dr2015-run','dr2015-clutch','dr2015-start','key','pedal','pto','tractor-seat','tractor-reverse','ski-electric','ski-start','ski-disconnect','kodiak-neutral','kodiak-brake','kodiak-run','kodiak-start','foreman-neutral','foreman-run','foreman-start','crf-neutral','crf-clutch','crf-stand','crf-run','crf-start','honda-neutral','honda-start','suzuki-clutch','suzuki-start','yamaha-neutral','yamaha-run','yamaha-start']) el(id).addEventListener('change',updateEngine);
 for(const id of ['regime','headlights','ski-rpm','ski-pull','ski-heat','series-grips-on','gl1800-front-on','gl1800-rear-on','kodiak-light','kodiak-drive','foreman-light','foreman-shift','crf-light','honda-light','suzuki-light','yamaha-light','show-flow','meter-isolate']) el(id).addEventListener('change',render);
 el('meter-mode').addEventListener('change',()=>{
  if(!benchOpen) {
@@ -6157,6 +6274,8 @@ function resetScenario() {
  el('honda-light').value='off';
  el('suzuki-light').value='lo';
  el('suzuki-clutch').checked=false;
+ for(const id of ['dr2015-neutral','dr2015-stand','dr2015-clutch','dr2015-start']) el(id).checked=false;
+ el('dr2015-run').checked=true;
  el('yamaha-neutral').checked=false;
  el('yamaha-run').checked=true;
  el('yamaha-light').value='lo';
@@ -6180,7 +6299,7 @@ el('case').addEventListener('change',resetScenario);
 function selectSystem() {
  system=el('system').value;
  el('case').replaceChildren();
- const cases=({school:systems,honda:hondaSystems,foreman:foremanSystems,kodiak:kodiakSystems,ski:skiSystems,ski850:ski850Systems,outlander:outlanderSystems,ktm500:ktmSystems,f7:f7Systems,yz450:yzSystems,gl1800:gl1800Systems,'series-grips':seriesGripSystems,suzuki:suzukiSystems,yamaha:yamahaSystems,mtd:mtdSystems,x520:x520Systems,kubota:kubotaSystems,crf:crfSystems,g3500:generatorSystems,ef2000:efSystems})[plan.id][system];
+ const cases=({school:systems,honda:hondaSystems,foreman:foremanSystems,kodiak:kodiakSystems,ski:skiSystems,ski850:ski850Systems,outlander:outlanderSystems,ktm500:ktmSystems,f7:f7Systems,yz450:yzSystems,gl1800:gl1800Systems,'series-grips':seriesGripSystems,suzuki:suzukiSystems,dr2015:dr2015Systems,yamaha:yamahaSystems,mtd:mtdSystems,x520:x520Systems,kubota:kubotaSystems,crf:crfSystems,g3500:generatorSystems,ef2000:efSystems})[plan.id][system];
  for(const [value,label] of [...cases,['normal','Fonctionnement normal']]) el('case').add(new Option(label,value));
  el('case').value=cases[0][0];
  el('engine-tools').hidden=plan===plans.ski850||plan===plans.gl1800||plan===plans['series-grips']||(plan!==plans.ski&&system==='starting');
@@ -6262,18 +6381,19 @@ function setTechnicalResource(linkId,labelId,resource) {
  }
 }
 
-const indianReferenceId='indian-reference';
+const referenceViewers={'indian-reference':'indian-reference-viewer','ninja300-reference':'ninja-reference-viewer'};
 
-function updateIndianReference() {
- const visible=!benchOpen&&el('plan').value===indianReferenceId;
+function updateReferencePlan() {
+ const selected=benchOpen?'':el('plan').value;
+ const visible=Object.hasOwn(referenceViewers,selected);
  el('diagnostic-main').toggleAttribute('data-reference-plan',visible);
- el('indian-reference-viewer').hidden=!visible;
+ for(const [id,viewer] of Object.entries(referenceViewers)) el(viewer).hidden=selected!==id;
  el('standard-complaint').setAttribute('aria-labelledby',visible?'plan-label':'plainte');
  return visible;
 }
 
 function selectPlan() {
- if(updateIndianReference()) return;
+ if(updateReferencePlan()) return;
  plan=plans[el('plan').value];
  if(plan!==plans.yz450) setYamahaLegend('yz-diagram-legend',null);
  points=plan.points;
@@ -6318,6 +6438,7 @@ function selectPlan() {
  el('key-run').textContent=(plan===plans.ski||plan===plans.ski850)?'ON · Cordon reconnu':plan===plans.kubota?'ON · Marche':plan===plans.mtd?'RUN 1 · Marche':(isTractorPlan()?'RUN · Marche':'ON · Contact');
  el('tractor-controls').hidden=!isTractorPlan();
  el('suzuki-controls').hidden=plan!==plans.suzuki;
+ el('dr2015-controls').hidden=plan!==plans.dr2015;
  el('yamaha-controls').hidden=plan!==plans.yamaha;
  el('ski-controls').hidden=plan!==plans.ski;
  el('diagnostic-wiring-shortcut').hidden=!plan.views?.wiring2016;
@@ -6377,6 +6498,12 @@ el('record').addEventListener('click',()=>{
   controls.push(el('yamaha-neutral').checked?'Point mort':'Vitesse engagée',
    el('yamaha-run').checked?'Coupe-circuit sur RUN':'Coupe-circuit sur STOP',
    el('yamaha-start').checked?'Bouton maintenu':'Bouton relâché');
+ } else if(plan===plans.dr2015) {
+  controls.push(el('dr2015-neutral').checked?'Point mort':'Vitesse engagée',
+   el('dr2015-stand').checked?'Béquille relevée':'Béquille abaissée',
+   el('dr2015-run').checked?'Coupe-circuit sur RUN':'Coupe-circuit sur STOP',
+   el('dr2015-clutch').checked?'Embrayage tiré':'Embrayage relâché',
+   el('dr2015-start').checked?'Bouton maintenu':'Bouton relâché');
  } else if(plan===plans.suzuki) {
   controls.push(el('suzuki-clutch').checked?'Embrayage tiré':'Embrayage relâché',
    el('suzuki-start').checked?'Bouton maintenu':'Bouton relâché');
@@ -6427,7 +6554,7 @@ el('start-view').addEventListener('click',()=>{
  const mtdTargets={starting:[.49,.39],charging:[.49,.52],lighting:[.16,.12],ignition:[.43,.38]};
  const generatorTargets={'generator-ac':[.69,.02],'generator-avr':[.30,.38],'generator-dc':[.34,.24],ignition:[.82,.38]};
  const efTargets={'ef-ac':[.83,.1],'ef-inverter':[.36,.06],'generator-dc':[.67,.03],ignition:[.54,.49]};
- const [x,y]=({school:targets,honda:hondaTargets,suzuki:suzukiTargets,yamaha:yamahaTargets,mtd:mtdTargets,g3500:generatorTargets,ef2000:efTargets})[plan.id][system];
+ const [x,y]=({school:targets,honda:hondaTargets,suzuki:suzukiTargets,dr2015:{starting:[.66,.21]},yamaha:yamahaTargets,mtd:mtdTargets,g3500:generatorTargets,ef2000:efTargets})[plan.id][system];
  el('scroll').scrollTo(Math.max(0,w*x-el('scroll').clientWidth/2),el('sheet').offsetHeight*y);
 });
 el('plus').addEventListener('click',()=>{zoom=Math.min(4,zoom*1.25);resize();});
@@ -7412,7 +7539,7 @@ function selectWorkspace(open) {
  el('plan-fullscreen').hidden=open;
  el('choose-diagnostic').setAttribute('aria-pressed',String(!open));
  el('choose-bench').setAttribute('aria-pressed',String(open));
- updateIndianReference();
+ updateReferencePlan();
  render();
 }
 
@@ -7474,6 +7601,8 @@ el('battery-stop').addEventListener('click',()=>{
 });
 
 const identificationComponents={
+ dr2015:{starting:'Batterie|Fusible principal|Contacteur à clé|Relais de béquille|Contacteur de béquille|Contacteur de point mort|Témoin de point mort|Bloc de diodes|Coupe-circuit|Bouton de démarrage|Contacteur d’embrayage|Relais de démarreur|Démarreur|Masse'},
+
  yz450:{starting:'Batterie (6)|Fusible de 15 A (7)|Relais de démarreur (8)|Démarreur (9)|Diode (10)|ECU (12)|Bouton START (27)|Masse du cadre (5)',
  charging:'Magnéto (2)|Stator monophasé|Régulateur-redresseur (3)|Masse moteur (4)|Batterie (6)|Fusible de 15 A (7)',
  'yz-injection':'Batterie (6)|Fusible de 15 A (7)|ECU (12)|Injecteur (15)|Fil d’alimentation rouge|Fil de commande rouge/noir'}, 
@@ -7893,7 +8022,7 @@ el('choose-identification').addEventListener('click',()=>{
  for(const id of ['diagnostic','bench','identification']) el('choose-'+id).setAttribute('aria-pressed',String(id==='identification'));
  if(!identificationEquipment.size) {
   for(const option of el('plan').options) {
-   if(option.value!==indianReferenceId) identificationEquipment.set(option.value,option.text);
+   if(!Object.hasOwn(referenceViewers,option.value)) identificationEquipment.set(option.value,option.text);
   }
   el('id-equipment').replaceChildren(...Array.from(identificationEquipment,([id,name])=>new Option(name,id)));
   el('id-equipment').value=plan.id;
@@ -8180,5 +8309,37 @@ enablePlanFullscreen('identification-viewer','id-fullscreen','id-scroll',resizeI
  enablePlanFullscreen('indian-reference-viewer','indian-fullscreen','indian-reference-viewer',resizeReference);
  if(typeof ResizeObserver==='function') new ResizeObserver(resizeReference).observe(viewer);
  else window.addEventListener('resize',resizeReference);
+}
+
+{
+ const viewer=el('ninja-reference-viewer');
+ const viewport=el('ninja-viewport');
+ const image=el('ninja-plan-image');
+ const choice=el('ninja-circuit');
+ const sizes={"demarrage": [921, 1312], "charge": [1027, 894], "eclairage": [964, 1111], "allumage": [953, 1272]};
+ let zoom=1;
+ function sizeImage() {
+  if(viewer.hidden||!viewport.clientWidth) return;
+  const [w,h]=sizes[choice.value];
+  image.style.width=Math.floor(Math.min(viewport.clientWidth,viewport.clientHeight*w/h)*zoom)+'px';
+ }
+ function setCircuit() {
+  const [w,h]=sizes[choice.value];
+  image.width=w;
+  image.height=h;
+  image.alt='Schéma Kawasaki Ninja 300 ABS · '+choice.selectedOptions[0].textContent;
+  image.src='ninja-300-abs-2015-'+choice.value+'.jpg';
+  zoom=1;
+  sizeImage();
+  viewport.scrollTo(0,0);
+ }
+ choice.addEventListener('change',setCircuit);
+ el('ninja-minus').addEventListener('click',()=>{zoom=Math.max(1,zoom/1.25);sizeImage();});
+ el('ninja-plus').addEventListener('click',()=>{zoom=Math.min(8,zoom*1.25);sizeImage();});
+ el('ninja-fit').addEventListener('click',()=>{zoom=1;sizeImage();viewport.scrollTo(0,0);});
+ enablePlanFullscreen('ninja-reference-viewer','ninja-fullscreen','ninja-reference-viewer',sizeImage);
+ if(typeof ResizeObserver==='function') new ResizeObserver(sizeImage).observe(viewer);
+ else window.addEventListener('resize',sizeImage);
+ setCircuit();
 }
 </script></body></html>
