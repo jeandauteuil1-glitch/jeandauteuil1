@@ -225,7 +225,26 @@ body.plan-fallback-open{overflow:hidden}
  background:#fff3b3;fill:#fff3b3;filter:drop-shadow(0 0 5px #ffb83d)
 }
 .tool-chooser button{min-width:min(100%,10rem)}
-#indian-technical-resource{margin-top:.55rem;align-items:flex-start;text-align:left}
+
+#indian-resource-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.55rem}
+#indian-resource-actions .technical-resource-link{margin:0;align-items:flex-start;text-align:left;font-size:.9rem}
+#indian-plan-dialog{box-sizing:border-box;width:min(96vw,1450px);height:94vh;height:94dvh;max-width:none;max-height:none;padding:0;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:#fff}
+#indian-plan-dialog::backdrop{background:#101d23b5}
+#indian-plan-dialog[open]{display:flex;flex-direction:column}
+.indian-view-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;padding:.65rem .85rem}
+.indian-view-heading h2,.indian-view-heading p{margin:0}
+.indian-view-toolbar{padding:.42rem .85rem;border-block:1px solid var(--line);background:#f8fbfb}
+.indian-view-toolbar select{min-width:0;max-width:100%;padding:.37rem}
+.indian-view-toolbar button{min-width:2.25rem}
+#indian-zoom-level{font-variant-numeric:tabular-nums}
+#indian-viewport{flex:1;min-height:0;overflow:auto;background:#e4ebed;overscroll-behavior:contain}
+#indian-diagram-image{display:block;height:auto;max-width:none;margin-inline:auto}
+.indian-view-note{margin:0;padding:.45rem .85rem}
+@media(max-width:650px){
+ #indian-plan-dialog{width:100vw;height:100vh;height:100dvh;border:0;border-radius:0}
+ .indian-view-heading,.indian-view-toolbar,.indian-view-note{padding-inline:.55rem}
+}
+
 </style></head>
 <body>
 <header class="site-header"><div><p>DEP 5367 · Module 8</p><h1>Simulateur de diagnostic électrique</h1><nav class="workspace-tabs" aria-label="Activités">
@@ -233,10 +252,16 @@ body.plan-fallback-open{overflow:hidden}
 <button id="choose-diagnostic" type="button" aria-pressed="true">Diagnostic sur plan</button>
 <button id="choose-bench" type="button" aria-pressed="false">Banc de composants</button>
 </nav>
+<div id="indian-resource-actions">
+<button id="open-indian-plan" class="technical-resource-link" type="button" aria-haspopup="dialog">
+ <span>Plan électrique</span>
+ <small>Indian Challenger · Faisceau du châssis</small>
+</button>
 <a id="indian-technical-resource" class="technical-resource-link" href="https://drive.google.com/file/d/16O8mpWblb1-ujCt6msIPkIJ6DN_61Yf_/view?usp=sharing" target="_blank" rel="noopener noreferrer">
  <span>Ressource technique</span>
  <small>Indian Challenger / Pursuit · Manuel d’atelier 2020–2024</small>
 </a>
+</div>
 </div>
 <div class="header-share">
 <a class="simulator-qr" href="https://jeandauteuil1-glitch.github.io/jeandauteuil1/">
@@ -766,6 +791,36 @@ body.plan-fallback-open{overflow:hidden}
     </div>
   </section>
 </main>
+
+<dialog id="indian-plan-dialog" aria-labelledby="indian-plan-title" aria-describedby="indian-plan-note">
+ <div class="indian-view-heading">
+  <div><h2 id="indian-plan-title">Indian Challenger</h2><p class="compact">Faisceau du châssis · HWLC G1 V1</p></div>
+  <form method="dialog"><button type="submit" autofocus>Fermer</button></form>
+ </div>
+ <div class="group indian-view-toolbar" role="group" aria-label="Affichage du plan Indian">
+  <label for="indian-zone">Zone</label>
+  <select id="indian-zone">
+   <option value="all">Plan complet</option>
+   <option value="legend">Légende</option>
+   <option value="starter">Solénoïde de démarreur</option>
+   <option value="handlebars">Guidon et console</option>
+   <option value="lights">Éclairage arrière</option>
+   <option value="engine">Connecteur châssis / moteur</option>
+   <option value="ecm">Calculateur ECM</option>
+   <option value="fuses">Boîte à fusibles</option>
+   <option value="ground">Masses et régulateur de tension</option>
+  </select>
+  <button id="indian-shrink" aria-label="Réduire le zoom" type="button">−</button>
+  <button id="indian-enlarge" aria-label="Agrandir le zoom" type="button">+</button>
+  <output id="indian-zoom-level" aria-label="Niveau de zoom"></output>
+ </div>
+ <div id="indian-viewport" tabindex="0" role="region" aria-label="Plan électrique agrandi">
+  <img id="indian-diagram-image" src="indian-faisceau.webp" loading="lazy" width="2560" height="1678"
+       alt="Plan en couleur du faisceau du châssis. Le solénoïde est à gauche, le calculateur et la boîte à fusibles sont en bas et le régulateur est en bas à droite.">
+ </div>
+ <p class="compact indian-view-note" id="indian-plan-note">Schéma de référence. Certains numéros de broches sont trop petits dans l’image d’origine pour être confirmés.</p>
+</dialog>
+
 <section id="id-print-sheet" aria-label="Fiche de repérage à remettre"></section>
 
 <svg id="probe-layer" aria-label="Fils, pointes et pinces des instruments">
@@ -8060,4 +8115,52 @@ enablePlanFullscreen('diagnostic-viewer','plan-fullscreen','scroll',resize,[
 ]);
 el('plan-fullscreen').addEventListener('click',()=>{el('fullscreen-record-feedback').textContent='';});
 enablePlanFullscreen('identification-viewer','id-fullscreen','id-scroll',resizeIdentification);
+
+{
+ const dialog=el('indian-plan-dialog');
+ const viewport=el('indian-viewport');
+ const diagram=el('indian-diagram-image');
+ const zone=el('indian-zone');
+ const points={
+  legend:[57,53,140],starter:[144,156,235],handlebars:[363,84,300],lights:[764,80,280],
+  engine:[132,470,215],ecm:[530,745,300],fuses:[765,772,225],ground:[1087,767,320]
+ };
+ let zoom=1;
+ const fit=()=>Math.min(viewport.clientWidth,viewport.clientHeight*1280/839);
+ const clampZoom=value=>Math.max(1,Math.min(value,9000/Math.max(1,fit())));
+ function draw(x=.5,y=.5) {
+  const width=Math.floor(fit()*zoom);
+  if(width<1) return;
+  diagram.style.width=width+'px';
+  viewport.scrollTo(x*width-viewport.clientWidth/2,y*diagram.offsetHeight-viewport.clientHeight/2);
+  el('indian-zoom-level').textContent=Math.round(zoom*100)+' %';
+  el('indian-shrink').disabled=zoom<=1;
+  el('indian-enlarge').disabled=zoom>=clampZoom(Infinity);
+ }
+ function focusZone() {
+  if(zone.value==='all') {
+   zoom=1;
+   draw();
+   return;
+  }
+  const [x,y,span]=points[zone.value];
+  zoom=clampZoom(Math.min(viewport.clientWidth,viewport.clientHeight*1.65)*1280/(Math.max(1,fit())*span));
+  draw(x/1280,y/839);
+ }
+ function changeZoom(factor) {
+  const x=diagram.offsetWidth<=viewport.clientWidth?.5:(viewport.scrollLeft+viewport.clientWidth/2)/diagram.offsetWidth;
+  const y=diagram.offsetHeight<=viewport.clientHeight?.5:(viewport.scrollTop+viewport.clientHeight/2)/diagram.offsetHeight;
+  zoom=clampZoom(zoom*factor);
+  draw(x,y);
+ }
+ el('open-indian-plan').addEventListener('click',()=>{
+  dialog.showModal();
+  zone.value='all';
+  focusZone();
+ });
+ zone.addEventListener('change',focusZone);
+ el('indian-shrink').addEventListener('click',()=>changeZoom(1/1.3));
+ el('indian-enlarge').addEventListener('click',()=>changeZoom(1.3));
+ window.addEventListener('resize',()=>{if(dialog.open) focusZone();});
+}
 </script></body></html>
