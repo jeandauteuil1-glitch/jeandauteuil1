@@ -294,7 +294,6 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
 <option value="yamaha">Yamaha XVS1100L/LC</option>
 <option value="series-grips">Harley-Davidson · Poignées chauffantes en série</option>
 <option value="gl1800">Honda GL1800 · Sièges chauffants</option>
-<option value="dr2015">Suzuki DR200 · 2015</option>
 <option value="ninja300-reference">Kawasaki Ninja 300 ABS · 2015</option>
 <option value="indian-reference">Indian Challenger · Faisceau du châssis</option>
 </select>
@@ -3661,6 +3660,17 @@ const hondaSystems = {
  charging:[['honda-stator','A'],['honda-regulator','B']],
  lighting:[['honda-low','A'],['honda-light-ground','B']]
 };
+const dr200InterlockOption='starting-interlock';
+const dr200InterlockLabel='Démarrage · sécurités (2015)';
+const dr200SystemOptions=[
+ [dr200InterlockOption,dr200InterlockLabel],
+ ['starting','Démarrage · plan général'],
+ ['charging','Charge'],
+ ['lighting','Éclairage']
+];
+const dr200VehicleId=planId=>planId==='dr2015'?'suzuki':planId;
+const dr200CircuitId=selection=>selection===dr200InterlockOption?'starting':selection;
+const dr200PlanId=(vehicle,selection)=>vehicle==='suzuki'&&selection===dr200InterlockOption?'dr2015':vehicle;
 const dr2015Systems={starting:[['dr2015-stand-open','A'],['dr2015-relay-open','B'],['dr2015-clutch-open','C']]};
 const suzukiSystems={
  starting:[['suzuki-clutch','A'],['suzuki-relay','B']],
@@ -6306,7 +6316,12 @@ function resetScenario() {
 }
 el('case').addEventListener('change',resetScenario);
 function selectSystem() {
- system=el('system').value;
+ const selection=el('system').value;
+ if(dr200PlanId(el('plan').value,selection)!==plan.id) {
+  selectPlan(selection);
+  return;
+ }
+ system=dr200CircuitId(selection);
  el('case').replaceChildren();
  const cases=({school:systems,honda:hondaSystems,foreman:foremanSystems,kodiak:kodiakSystems,ski:skiSystems,ski850:ski850Systems,outlander:outlanderSystems,ktm500:ktmSystems,f7:f7Systems,yz450:yzSystems,gl1800:gl1800Systems,'series-grips':seriesGripSystems,suzuki:suzukiSystems,dr2015:dr2015Systems,yamaha:yamahaSystems,mtd:mtdSystems,x520:x520Systems,kubota:kubotaSystems,crf:crfSystems,g3500:generatorSystems,ef2000:efSystems})[plan.id][system];
  for(const [value,label] of [...cases,['normal','Fonctionnement normal']]) el('case').add(new Option(label,value));
@@ -6433,9 +6448,11 @@ function planImageLoader(imageId,viewportId,onReady) {
 const loadDiagnosticPlan=planImageLoader('plan-image','scroll',resize);
 const loadIdentificationPlan=planImageLoader('id-image','id-scroll');
 
-function selectPlan() {
+function selectPlan(selection) {
  if(updateReferencePlan()) return;
- plan=plans[el('plan').value];
+ const vehicle=el('plan').value;
+ if(vehicle==='suzuki') selection??=dr200InterlockOption;
+ plan=plans[dr200PlanId(vehicle,selection)];
  if(plan!==plans.yz450) setYamahaLegend('yz-diagram-legend',null);
  points=plan.points;
  pointById=Object.fromEntries(points.map(p=>[p[0],p]));
@@ -6446,8 +6463,10 @@ function selectPlan() {
  el('overlay').setAttribute('viewBox','0 0 '+plan.width+' '+plan.height);
  populateProbePoints();
  el('system').replaceChildren();
- for(const id of plan.systemIds) el('system').add(new Option(plan===plans.kubota&&id==='charging'?'Charge · dynamo CA':systemNames[id],id));
- el('system').value=plan.systemIds[0];
+ const systemOptions=vehicle==='suzuki'?dr200SystemOptions:
+  plan.systemIds.map(id=>[id,plan===plans.kubota&&id==='charging'?'Charge · dynamo CA':systemNames[id]]);
+ for(const [id,label] of systemOptions) el('system').add(new Option(label,id));
+ el('system').value=vehicle==='suzuki'?selection:plan.systemIds[0];
  el('key-start').disabled=el('key-start').hidden=!isTractorPlan();
  el('mtd-run2').disabled=el('mtd-run2').hidden=plan!==plans.mtd;
  el('school-lights').disabled=el('school-lights').hidden=plan!==plans.school;
@@ -6498,7 +6517,7 @@ function syncSelectedVehicle(event) {
  const selected=event.currentTarget.value;
  const reference=referenceViewers[selected];
  const updated=reference ? !el(reference).hidden :
-  !el('diagnostic-main').hasAttribute('data-reference-plan')&&plan.id===selected;
+  !el('diagnostic-main').hasAttribute('data-reference-plan')&&dr200VehicleId(plan.id)===selected;
  if(updated) return;
  selectPlan();
  if(window.matchMedia('(max-width: 650px)').matches) {
@@ -6513,7 +6532,7 @@ window.addEventListener('pageshow',event=>{
  if(!event.persisted||benchOpen) return;
  const selected=el('plan').value;
  const reference=el('diagnostic-main').hasAttribute('data-reference-plan');
- if(Object.hasOwn(referenceViewers,selected)||reference||selected!==plan.id) selectPlan();
+ if(Object.hasOwn(referenceViewers,selected)||reference||selected!==dr200VehicleId(plan.id)) selectPlan();
 });
 el('retest').addEventListener('click',()=>{
  repaired=true;
@@ -7822,8 +7841,14 @@ function saveIdentification() {
  }
 }
 
-function identificationPlan() { return plans[el('id-equipment').value]; }
-function identificationSystem() { return el('id-system').value; }
+function identificationPlan() {
+ return plans[dr200PlanId(el('id-equipment').value,el('id-system').value)];
+}
+function identificationSystem() { return dr200CircuitId(el('id-system').value); }
+function identificationSystemName() {
+ const selection=el('id-system').value;
+ return el('id-equipment').value==='suzuki'?dr200SystemOptions.find(([id])=>id===selection)[1]:identificationNames[selection];
+}
 function identificationView(key=el('id-view').value) {
  const equipment=identificationPlan();
  return equipment.views?.[key]||equipment;
@@ -7841,14 +7866,14 @@ function identificationRows() {
 function identificationRow() {return identificationRows()[Number(el('id-component').value)];}
 
 function setIdentificationEquipment() {
- const equipment=identificationPlan();
+ const equipment=plans[el('id-equipment').value];
  setTechnicalResource('id-manual-shortcut','id-manual-equipment',technicalResources[equipment.id]);
  el('identification-wiring-shortcut').hidden=!equipment.views?.wiring2016;
- const available=identificationComponents[equipment.id];
- const ids=Object.keys(available);
+ const options=equipment===plans.suzuki?dr200SystemOptions:
+  Object.keys(identificationComponents[equipment.id]).map(id=>[id,identificationNames[id]]);
  const previous=el('id-system').value;
- el('id-system').replaceChildren(...ids.map(id=>new Option(identificationNames[id],id)));
- el('id-system').value=ids.includes(previous)?previous:ids[0];
+ el('id-system').replaceChildren(...options.map(([id,label])=>new Option(label,id)));
+ el('id-system').value=options.some(([id])=>id===previous)?previous:options[0][0];
  const generator=['ef2000','g3500'].includes(equipment.id);
  el('id-system-note').hidden=!generator;
  el('id-system-note').textContent=generator?'Ce plan présente les circuits de production et de sortie. Il ne montre ni démarreur électrique ni circuit de phares.':'';
@@ -7905,7 +7930,7 @@ function setIdentificationView() {
  setYamahaLegend('yz-identification-legend',view);
  el('id-diagram-title').textContent=[plans.ski850,plans.ktm500,plans.outlander,plans.f7,plans.yz450].includes(identificationPlan())?view.name:view.referenceOnly?'Plan électrique complet BRP 2016':'Plan électrique';
  loadIdentificationPlan(view.src,view.width,view.height,
-  'Schéma électrique · '+identificationEquipment.get(identificationPlan().id)+' · '+identificationViewName(el('id-view').value));
+  'Schéma électrique · '+identificationEquipment.get(el('id-equipment').value)+' · '+identificationViewName(el('id-view').value));
  identificationZoom=1;
  identificationCursor=[.5,.5];
  resizeIdentification();
@@ -8078,7 +8103,10 @@ el('choose-identification').addEventListener('click',()=>{
    if(!Object.hasOwn(referenceViewers,option.value)) identificationEquipment.set(option.value,option.text);
   }
   el('id-equipment').replaceChildren(...Array.from(identificationEquipment,([id,name])=>new Option(name,id)));
-  el('id-equipment').value=plan.id;
+  el('id-equipment').value=dr200VehicleId(plan.id);
+  if(plan===plans.suzuki) {
+   el('id-system').replaceChildren(new Option('',system));
+  }
   el('id-student').value=identificationState.student||'';
   setIdentificationEquipment();
  }
@@ -8150,7 +8178,7 @@ function prepareIdentificationPrint() {
   return element;
  };
  const title=item('h1','Fiche de repérage · DEP 5367 · Module 8');
- const machine=item('h2',identificationEquipment.get(identificationPlan().id)+' · '+identificationNames[identificationSystem()]);
+ const machine=item('h2',identificationEquipment.get(el('id-equipment').value)+' · '+identificationSystemName());
  const student=item('p','Élève · '+(identificationState.student.trim()||'________________________________'));
  const table=document.createElement('table');
  const head=document.createElement('thead');
