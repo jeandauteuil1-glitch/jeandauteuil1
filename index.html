@@ -756,6 +756,7 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
 <div><label for="bench-battery-minus">Pince noire du testeur</label><select id="bench-battery-minus"></select></div>
 </div>
 <div id="lamp-options" class="lamp-options" hidden>
+<label id="craft-lamp-series-option" hidden><input type="checkbox" id="craft-lamp-series"> Brancher la lampe en série à la place du fusible</label>
 <p id="lamp-instructions">Branche les deux pinces sur la batterie, puis glisse la pointe sur le plan.</p>
 <div><label for="lamp-plus">Pince rouge (+)</label><select id="lamp-plus"></select></div>
 <div><label id="lamp-minus-label" for="lamp-minus">Pince noire (−)</label><select id="lamp-minus"></select></div>
@@ -3691,6 +3692,7 @@ const scenarios = {
  'mtd-kill-short':['« Le démarreur entraîne le moteur, mais il ne part pas. »','Fil d’arrêt YEL de la magnéto à la masse. Le testeur ne détecte aucune étincelle en START. En RUN, moteur arrêté, le fil de la magnéto reste à la masse en Ω.'],
  'mtd-kill-open':['« Le moteur continue de tourner quand je mets la clé à OFF. »','Trajet d’arrêt ouvert entre la borne M et la magnéto. Utilise le bouton d’arrêt de l’essai. Clé à OFF, vérifie la continuité vers la masse : la borne M est à la masse, mais le fil côté magnéto affiche OL.'],
  pedal:[complaint,'Contact de démarrage de la pédale ouvert malgré la pédale enfoncée. En START, PTO désengagée, mesure entre l’entrée et la sortie du contacteur de pédale. Tu devrais obtenir environ 12,6 V.'],
+ 'craft-start-short':['« Le fusible a sauté dès que j’ai tourné la clé à START avec la pédale enfoncée. Depuis, je n’entends même plus le solénoïde. »','Le fil entre la sortie du contacteur de pédale et l’entrée du contacteur de PTO est en court-circuit à la masse. Branche la lampe à incandescence en série à la place du fusible. En START, PTO engagée (contact de démarrage ouvert), la lampe reste éteinte pédale relâchée et s’allume franchement dès que tu l’enfonces. Le défaut est donc après le contacteur de pédale et avant le contacteur de PTO. Après réparation, refais ce test : la lampe doit rester éteinte. Décoche ensuite le montage en série, désengage la PTO et vérifie que le démarreur tourne.'],
  fuse:[complaint,'Fusible ouvert. Vérifie ses deux côtés par rapport à la masse, puis mesure à ses bornes en START, pédale enfoncée et PTO désengagée.'],
  pto:[complaint,'Contact de démarrage de la PTO ouvert malgré la PTO désengagée. En START, pédale enfoncée, mesure entre l’entrée et la sortie de ce contacteur.'],
  power:['« Le solénoïde clique, mais le démarreur ne tourne pas. »','Contacts de puissance du solénoïde ouverts malgré l’activation de sa bobine. En START, vérifie la tension sur ses deux grosses bornes par rapport à la masse.'],
@@ -3722,7 +3724,7 @@ const scenarios = {
  normal:['Essai de fonctionnement après réparation.','En START, la pédale doit être enfoncée et la PTO désengagée pour que le démarreur tourne.']
 };
 const systems = {
- starting:[['pedal','A'],['fuse','B'],['pto','C'],['power','D'],['resistance','E']],
+ starting:[['pedal','A'],['fuse','B'],['pto','C'],['power','D'],['resistance','E'],['craft-start-short','F']],
  charging:[['charge-stator','A'],['charge-diode','B']],
  lighting:[['light-switch','A'],['light-ground','B']],
  ignition:[['ignition-short','A'],['ignition-open','B']]
@@ -3928,7 +3930,14 @@ function activeProbes() {
 function isClamp(probe) {
  return probe === 'lamp-plus' || probe === 'lamp-minus';
 }
+function craftsmanSeriesLampAvailable() {
+ return !benchOpen&&plan===plans.school&&system==='starting'&&scenario==='craft-start-short'&&instrument==='incandescent';
+}
+function craftsmanSeriesLamp() {
+ return craftsmanSeriesLampAvailable()&&el('craft-lamp-series').checked;
+}
 function canAttach(probe,id) {
+ if(craftsmanSeriesLamp()&&(probe==='lamp-minus'||probe==='lamp-point')) return id==='fi'||id==='fo';
  if(probe==='lamp-minus'&&instrument==='incandescent'&&!benchOpen) return id==='bn'||id==='ground';
  return !isClamp(probe)||id==='bp'||id==='bn';
 }
@@ -5351,19 +5360,24 @@ function tractorCircuit() {
  const start = key === 'start';
  const brake = el('pedal').value === 'down' && fault !== 'pedal';
  const pto = el('pto').value === 'off' && fault !== 'pto';
- const relay = start && brake && pto && fault !== 'fuse';
+ const seriesLamp=craftsmanSeriesLamp();
+ const fuseOpen=fault==='fuse'||fault==='craft-start-short'||seriesLamp;
+ const seriesConnected=seriesLamp&&across(el('lamp-point').value,el('lamp-minus').value,'fi','fo');
+ const relay = start && brake && pto && !fuseOpen;
  const power = relay && fault !== 'power';
  const edges = [];
  const add = (a,b,resistance,route) => edges.push({a,b,resistance,route});
  const wire = (a,b,route) => add(a,b,.001,route);
  wire('bp','sp','361,191 114,191 114,273 542,273 611,307');
  wire('sp','fi','611,307 431,307');
- if (fault !== 'fuse') add('fi','fo',.005,'431,307 414,314 407,300 399,300 386,307');
+ if (!fuseOpen) add('fi','fo',.005,'431,307 414,314 407,300 399,300 386,307');
+ if (seriesConnected) add('fi','fo',incandescentResistance);
  wire('fo','kb','386,307 114,307 114,420 175,420');
  if (start) add('kb','ks',.015,'175,420 213,398');
  wire('ks','bi','213,398 213,377 383,377');
  if (brake) add('bi','bo',.02,'383,377 441,377');
  wire('bo','pi','441,377 517,377 517,536 600,536');
+ if(fault==='craft-start-short') add('bo','ground',.025);
  if (pto) add('pi','po',.02,'600,536 658,536');
  wire('po','sc','658,536 712,536 712,465 544,465 544,358 599,358');
  add('sc','sg',5,'599,358 615,358 639,358 658,358');
@@ -5405,7 +5419,7 @@ function tractorCircuit() {
  if(instrument==='voltmeter' && red && black && red!==black && el('meter-mode').value==='ac') ac(red,black,1e7);
  if(charging) ac('charge-ac','bn',800);
  const acSources={bn:0,'stator-charge':engineRunning ? (high ? 28 : 12) : 0,'stator-light':engineRunning ? (high ? 14 : 6) : 0};
- return {edges,brake,pto,relay,power,sparkAllowed,dcSources,killEdges,acEdges,acSources};
+ return {edges,brake,pto,relay,power,sparkAllowed,dcSources,killEdges,acEdges,acSources,seriesConnected};
 }
 
 function voltages(edges,fixed={bp:12.6,bn:0},injected={}) {
@@ -5450,7 +5464,8 @@ function place(id) {
 }
 function addProbeOption(probe,id,name) {
  // The shared clamp also needs the chassis option when the incandescent lamp is selected.
- if(canAttach(probe,id)||(!benchOpen&&probe==='lamp-minus'&&['bp','ground'].includes(id))) {
+ if(probe==='lamp-point'||canAttach(probe,id)||(!benchOpen&&probe==='lamp-minus'&&
+  (['bp','bn','ground'].includes(id)||(plan===plans.school&&['fi','fo'].includes(id))))) {
   el(probe).add(new Option(name,id));
  }
 }
@@ -5793,7 +5808,12 @@ function meterReading(volts,acVoltage,state,red,black) {
  const openDiode=plan===plans.school && scenario==='charge-diode' && !repaired;
  return {text:diode[0]===red && !openDiode?'0,62 V':'OL'};
 }
+const incandescentResistance=48;
 function readIncandescent(state, volts, acVoltage, tip, ground) {
+ if(craftsmanSeriesLamp()) {
+  if(!state.seriesConnected) return {lit:'off',text:'Branche un fil de la lampe de chaque côté du porte-fusible.'};
+  return filamentBrightness(Math.abs(volts.fi-volts.fo));
+ }
  if(!ground) return {lit:'off',text:'Branche la pince à la masse ou au négatif de la batterie.'};
  if(!tip) return {lit:'off',text:'Pose la pointe sur le point à vérifier.'};
  if(!Number.isFinite(volts[tip])||!Number.isFinite(volts[ground])) {
@@ -5803,9 +5823,11 @@ function readIncandescent(state, volts, acVoltage, tip, ground) {
   return {lit:'off',text:'Lampe du banc limitée au 12 V CC. Utilise le multimètre simulé.'};
  }
  // Approximate a 3 W filament at its nominal 12 V and solve with that load in parallel.
- const filament={a:tip,b:ground,resistance:48};
+ const filament={a:tip,b:ground,resistance:incandescentResistance};
  const loaded=tip===ground?volts:voltages([...state.edges,filament],state.dcSources);
- const voltage=Math.abs(loaded[tip]-loaded[ground]);
+ return filamentBrightness(Math.abs(loaded[tip]-loaded[ground]));
+}
+function filamentBrightness(voltage) {
  if(voltage<2.4) return {lit:'off',text:'Lampe éteinte',valid:true};
  if(voltage<9) return {lit:'filament-dim',text:'Lampe faiblement allumée',valid:true};
  return {lit:'filament-bright',text:'Lampe bien allumée',valid:true};
@@ -5856,13 +5878,16 @@ function render() {
  el('choose-lamp').setAttribute('aria-pressed',String(instrument==='lamp'));
  el('choose-incandescent').setAttribute('aria-pressed',String(incandescent));
  el('probe-lamp-plus').hidden=el('lamp-plus').parentElement.hidden=incandescent;
- for(const option of el('lamp-minus').options) {
-  option.hidden=option.disabled=Boolean(option.value&&!canAttach('lamp-minus',option.value));
+ const seriesLamp=craftsmanSeriesLamp();
+ el('craft-lamp-series-option').hidden=!craftsmanSeriesLampAvailable();
+ for(const probe of ['lamp-minus','lamp-point']) for(const option of el(probe).options) {
+  option.hidden=option.disabled=Boolean(option.value&&!canAttach(probe,option.value));
  }
- el('lamp-minus-name').textContent=incandescent?'Pince de masse':'Pince −';
- el('lamp-minus-label').textContent=incandescent?'Pince de masse':'Pince noire (−)';
+ el('lamp-minus-name').textContent=incandescent?(seriesLamp?'Pince de la lampe':'Pince de masse'):'Pince −';
+ el('lamp-minus-label').textContent=incandescent?(seriesLamp?'Pince de la lampe':'Pince de masse'):'Pince noire (−)';
  el('lamp-instructions').textContent=incandescent
-  ? 'Lampe 12 V CC. Branche la pince à la masse, puis pose la pointe sur le point à vérifier.'
+  ? (seriesLamp?'Monte la lampe entre les deux côtés du fusible. Pour isoler la commande, mets la clé à START et observe la lampe en changeant la position de la pédale et de la PTO.':
+   'Lampe 12 V CC. Branche la pince à la masse, puis pose la pointe sur le point à vérifier.')
   : 'Branche les deux pinces sur la batterie, puis glisse la pointe sur le plan.';
  for(const id of ['lamp-panel','lamp-options']) el(id).hidden=!lampMode;
  for(const id of ['voltmeter-panel','voltmeter-options']) el(id).hidden=lampMode;
@@ -6081,6 +6106,10 @@ function render() {
   el('start-engine').textContent=plan===plans.ski||plan===plans.f7?'Tirer le lanceur':'Mettre le moteur en marche';
  }
  el('start-engine').disabled=engineRunning||(plan===plans.ski&&el('ski-disconnect').checked);
+ if(plan===plans.school&&scenario==='craft-start-short') {
+  if(seriesLamp) response='Montage de diagnostic : fusible retiré.';
+  else if(!repaired) response='Le fusible est ouvert. Le solénoïde reste immobile.';
+ }
  el('response').textContent=response;
  el('complaint').textContent=plan===plans.ninja300&&scenario==='normal'?ninjaNormalPrompts[system]:
   plan===plans.ski850&&scenario==='normal'?
@@ -6385,6 +6414,10 @@ el('spark-test').addEventListener('click',()=>{
 });
 for(const tool of ['voltmeter','lamp','incandescent']) el('choose-'+tool).addEventListener('click',()=>{
  if(el('choose-'+tool).hidden) return;
+ if(craftsmanSeriesLamp()&&tool!=='incandescent') {
+  el('craft-lamp-series').checked=false;
+  el('lamp-point').value='';
+ }
  instrument=tool;
  el('meter-break').checked=false;
  el('meter-isolate').checked=false;
@@ -6404,7 +6437,15 @@ for(const [id,phase] of [['shot-rope','early'],['shot-idle','idled'],['shot-stop
 }
 el('shot-button').addEventListener('change',render);
 
+el('craft-lamp-series').addEventListener('change',()=>{
+ el('lamp-minus').value='';
+ el('lamp-point').value='';
+ selectedProbe='lamp-minus';
+ render();
+});
+
 function resetScenario() {
+ el('craft-lamp-series').checked=false;
  for(const id of ['ninja-neutral','ninja-stand','ninja-run']) el(id).checked=true;
  for(const id of ['ninja-clutch','ninja-start']) el(id).checked=false;
  el('ninja300-light').value='lo';
@@ -6792,7 +6833,8 @@ el('record').addEventListener('click',()=>{
  const probeLabel=probe=>pointById[el(probe).value][1];
  if(el('record').disabled) return;
  const measure=instrument==='incandescent'
-  ? 'Lampe à incandescence · '+el('led-status').textContent+' · Pointe : '+probeLabel('lamp-point')+' · Masse : '+probeLabel('lamp-minus')
+  ? 'Lampe à incandescence'+(craftsmanSeriesLamp()?' en série · ':' · ')+el('led-status').textContent+
+    ' · Pointe : '+probeLabel('lamp-point')+(craftsmanSeriesLamp()?' · Pince : ':' · Masse : ')+probeLabel('lamp-minus')
   : instrument==='lamp'
    ? el('led-status').textContent+' · Pointe : '+probeLabel('lamp-point')
    : el('meter-mode').selectedOptions[0]?.textContent+' · '+el('reading').textContent+' · Rouge : '+probeLabel('red')+' · Noire : '+probeLabel('black');
