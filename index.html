@@ -246,6 +246,19 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
  .indian-view-heading,.indian-view-toolbar,.indian-view-note{padding-inline:.55rem}
  #indian-viewport{height:clamp(240px,62vh,620px)}
 }
+
+#duke-reference-viewer .viewer-plan{display:flex;flex-direction:column;min-width:0;min-height:0}
+#duke-viewport{height:clamp(250px,68vh,850px);overflow:auto;background:#e4ebed;overscroll-behavior:contain}
+#duke-reference-viewer.plan-expanded #duke-viewport{height:auto}
+#duke-plan-image{display:block;height:auto;max-width:none;margin-inline:auto}
+.duke-legend{margin:.35rem .8rem .65rem}
+.duke-legend summary{cursor:pointer}
+.duke-legend img{display:block;max-width:100%;height:auto;margin-top:.45rem;background:#fff}
+#duke-reference-viewer.plan-expanded .duke-legend[open]{max-height:32vh;overflow:auto}
+@media(max-width:650px){
+ #duke-viewport{height:clamp(220px,56vh,620px)}
+ #duke-circuit{flex:1 1 14rem}
+}
 [data-plan-image-state]:not([data-plan-image-state=ready]) .plan-image-layer{visibility:hidden;pointer-events:none}
 .plan-image-status{padding:.7rem 1rem}
 </style></head>
@@ -279,6 +292,7 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
 <option value="ski">Ski-Doo Summit X 800R E-TEC · 2015</option>
 <option value="yz450">Yamaha YZ450F · 2023</option>
 <option value="f7">Arctic Cat Firecat F7 · 700 EFI · 2003</option>
+<option value="duke390-reference">KTM 390 Duke · 2016</option>
 <option value="ktm500">KTM 500 EXC · 2013 · USA</option>
 <option value="outlander">Can-Am Outlander MAX XT-P 850 · 2023</option>
 <option value="ski850">Ski-Doo 850 E-TEC · 2019 · SHOT</option>
@@ -611,6 +625,47 @@ body:has(#diagnostic-main[data-reference-plan]:not([hidden]))>#probe-layer{displ
 <details class="card" id="bench-answer"><summary>Corrigé du banc</summary><p id="bench-correction"></p></details>
 </div></aside>
 <div class="layout-right">
+<section id="duke-reference-viewer" class="card viewer" aria-labelledby="duke-plan-title" hidden>
+ <div class="viewer-plan">
+  <div class="indian-view-heading">
+   <div><h2 id="duke-plan-title">KTM 390 Duke · 2016</h2><p class="compact">Schémas de référence</p></div>
+   <a id="duke-technical-resource" class="technical-resource-link" target="_blank" rel="noopener noreferrer">
+    <span>Ressource technique</span><small>Manuel d’atelier KTM 390 Duke · 2016</small>
+   </a>
+  </div>
+  <div class="group plan-toolbar indian-view-toolbar" role="group" aria-label="Choix du schéma KTM">
+   <label for="duke-market">Version</label>
+   <select id="duke-market"><option value="us">US · 2016</option><option value="int">Internationale · 2016</option></select>
+   <label for="duke-circuit">Circuit</label>
+   <select id="duke-circuit">
+    <option value="1">1 · Démarrage</option>
+    <option value="2">2 · Alimentation, pompe et ventilateur</option>
+    <option value="3">3 · Charge</option>
+    <option value="4">4 · Injection et capteurs</option>
+    <option value="5">5 · Allumage et sécurité de démarrage</option>
+    <option value="6">6 · Éclairage, frein et klaxon</option>
+    <option value="7">7 · Clignotants</option>
+    <option value="8">8 · Liaisons entre calculateurs</option>
+    <option value="9">9 · ABS</option>
+   </select>
+  </div>
+  <div class="group indian-view-toolbar" role="group" aria-label="Affichage du plan KTM">
+   <button id="duke-minus" type="button" aria-label="Réduire le zoom">−</button>
+   <button id="duke-fit" type="button">Plan complet</button>
+   <button id="duke-plus" type="button" aria-label="Agrandir le zoom">+</button>
+   <button id="duke-fullscreen" class="fullscreen-toggle" type="button" aria-pressed="false" aria-controls="duke-reference-viewer">Plein écran</button>
+   <output id="duke-page" class="compact" aria-live="polite"></output>
+  </div>
+  <p id="duke-viewport-status" class="plan-image-status compact" role="status" hidden></p>
+  <div id="duke-viewport" class="scroll" role="region" aria-label="Schéma électrique KTM" tabindex="0">
+   <img id="duke-plan-image" class="plan-image-layer" alt="">
+  </div>
+  <details class="duke-legend" id="duke-legend">
+   <summary>Légende des composants</summary>
+   <img id="duke-legend-image" loading="lazy" alt="Légende des composants du manuel KTM">
+  </details>
+ </div>
+</section>
 <section id="indian-reference-viewer" class="card viewer" aria-labelledby="indian-plan-title" aria-describedby="indian-plan-note" hidden>
 <div class="viewer-plan">
  <div class="indian-view-heading">
@@ -6536,7 +6591,7 @@ function setTechnicalResource(linkId,labelId,resource) {
  }
 }
 
-const referenceViewers={'indian-reference':'indian-reference-viewer'};
+const referenceViewers={'indian-reference':'indian-reference-viewer','duke390-reference':'duke-reference-viewer'};
 
 function updateReferencePlan() {
  const selected=benchOpen?'':el('plan').value;
@@ -8538,4 +8593,64 @@ enablePlanFullscreen('identification-viewer','id-fullscreen','id-scroll',resizeI
  else window.addEventListener('resize',resizeReference);
 }
 
+{
+ const viewer=el('duke-reference-viewer');
+ const viewport=el('duke-viewport');
+ const diagram=el('duke-plan-image');
+ const legend=el('duke-legend-image');
+ const circuit=el('duke-circuit');
+ const market=el('duke-market');
+ const loadDiagram=planImageLoader('duke-plan-image','duke-viewport');
+ const manualUrl='https://drive.google.com/file/d/11j8HUDJ38gAuvGXN7RQaNBlItisiIZX5/view';
+ el('duke-technical-resource').href=manualUrl;
+ let zoom=1;
+
+ function resizeDuke(x=.5,y=.5) {
+  if(viewer.hidden||!viewport.clientWidth) return;
+  const fittedWidth=Math.min(viewport.clientWidth,viewport.clientHeight*diagram.width/diagram.height);
+  const width=Math.round(fittedWidth*zoom);
+  diagram.style.width=width+'px';
+  viewport.scrollTo(width*x-viewport.clientWidth/2,diagram.offsetHeight*y-viewport.clientHeight/2);
+  el('duke-minus').disabled=zoom===1;
+  el('duke-plus').disabled=zoom===8;
+ }
+
+ function changeDukeZoom(factor) {
+  const x=diagram.offsetWidth>viewport.clientWidth?(viewport.scrollLeft+viewport.clientWidth/2)/diagram.offsetWidth:.5;
+  const y=diagram.offsetHeight>viewport.clientHeight?(viewport.scrollTop+viewport.clientHeight/2)/diagram.offsetHeight:.5;
+  zoom=Math.max(1,Math.min(8,zoom*factor));
+  resizeDuke(x,y);
+ }
+
+ function showDukeSheet() {
+  const file='duke390-'+market.value+'-'+circuit.value;
+  const label=circuit.selectedOptions[0].textContent;
+  zoom=1;
+  loadDiagram(file+'.webp',2189,1616,'KTM 390 Duke 2016 · '+label+' · '+market.selectedOptions[0].textContent);
+  legend.src=file+'-legende.webp';
+  legend.alt='Légende d’origine · '+label;
+  const pdfPage=(market.value==='us'?240:222)+2*(Number(circuit.value)-1);
+  el('duke-page').textContent='Manuel p. '+(pdfPage-2);
+  resizeDuke();
+ }
+
+ for(const input of [circuit,market]) input.addEventListener('change',showDukeSheet);
+ el('duke-minus').addEventListener('click',()=>changeDukeZoom(1/1.35));
+ el('duke-plus').addEventListener('click',()=>changeDukeZoom(1.35));
+ el('duke-fit').addEventListener('click',()=>{zoom=1;resizeDuke();});
+ enablePlanFullscreen('duke-reference-viewer','duke-fullscreen','duke-viewport',resizeDuke);
+ if(typeof ResizeObserver==='function') {
+  new ResizeObserver(()=>{
+   if(viewer.hidden||!viewport.clientWidth) return;
+   if(!diagram.hasAttribute('src')) showDukeSheet();
+   else resizeDuke();
+  }).observe(viewport);
+ } else {
+  el('plan').addEventListener('change',()=>{
+   if(!viewer.hidden&&!diagram.hasAttribute('src')) showDukeSheet();
+  });
+  if(!viewer.hidden) showDukeSheet();
+  window.addEventListener('resize',()=>resizeDuke());
+ }
+}
 </script></body></html>
